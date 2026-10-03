@@ -6,6 +6,13 @@ The `MMM-vvsDeparture` module is a module designed to display the departures tim
 
 It also will show any delays, based on the real time information provided by VVS.
 
+The time column shows the planned departure. The column next to it shows the realtime status of each departure:
+
+- `+N` / `-N`: the departure is N minutes late / early
+- `0`: the departure is on time
+- `?`: there is no realtime data for this departure
+- `canc.` / `gestr.`: the departure is cancelled
+
 Example:
 
 ![Full](example1.png)
@@ -128,3 +135,10 @@ The following properties can be configured:
 	</tbody>
 </table>
 
+## Tests
+
+The tests use jsdom and moment from MagicMirror. Run them from the MagicMirror root directory:
+
+```shell
+node --test modules/MMM-vvsDeparture/tests/departure.test.js
+```

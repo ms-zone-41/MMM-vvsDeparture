@@ -1,5 +1,7 @@
 {
 	"DIRECTIONS_FROM": "Departures from {{STATION}}",
 	"DIRECTIONS_FROM_WITH_OFFSET": "Departures from {{STATION}} in {{OFFSET}} min.",
-	"CANCELED": "canc."
+	"CANCELED": "canc.",
+	"ON_TIME": "On time",
+	"REALTIME_UNKNOWN": "No realtime data"
 }

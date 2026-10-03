@@ -12,7 +12,8 @@
     color: red;
 }
 
-.departure .nodelay {
+.departure .nodelay,
+.departure .unknown {
     padding-left: 10px;
 }
 

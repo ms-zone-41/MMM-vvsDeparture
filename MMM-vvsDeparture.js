@@ -101,32 +101,29 @@ Module.register("MMM-vvsDeparture", {
 			var clockWrapper = document.createElement("td");
 			clockWrapper.className = "time";
 
-			var date = new Date(currentValue.departureTimePlanned);
-			clockWrapper.innerHTML = moment(date.getHours() + ":" + date.getMinutes(), "HH:mm")
-				.subtract(currentValue.delay, "m")
-				.format("HH:mm");
+			clockWrapper.innerHTML = moment(currentValue.departureTimePlanned).format("HH:mm");
 			trWrapper.appendChild(clockWrapper);
 
-			// Delay
+			// Delay, calculated for each departure on its own
 			var delayWrapper = document.createElement("td");
-			if("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true){
-				var delay = this.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated);
-			}
-			if (delay.getMinutes() != 0) {
-				delayWrapper.className = "delay";
-				if (self.config.colorDelay) {
-					delayWrapper.className += " color";
-				}
+			var delay = currentValue.isRealtimeControlled === true
+				? self.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated)
+				: null;
+			if (self.isCancelled(currentValue)) {
+				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
+				delayWrapper.textContent = self.translate("CANCELED");
+			} else if (delay === null) {
+				// No realtime data: the planned time alone does not confirm punctuality
+				delayWrapper.className = "unknown";
+				delayWrapper.textContent = "?";
+				delayWrapper.title = self.translate("REALTIME_UNKNOWN");
+			} else if (delay === 0) {
+				delayWrapper.className = self.config.colorNoDelay ? "nodelay color" : "nodelay";
+				delayWrapper.textContent = "0";
+				delayWrapper.title = self.translate("ON_TIME");
 			} else {
-				delayWrapper.className = "nodelay";
-				if (self.config.colorNoDelay) {
-					delayWrapper.className += " color";
-				}
-			}
-			if(isNaN(delay.getMinutes())){
-				delayWrapper.innerHTML = self.translate("CANCELED");
-			} else {
-				delayWrapper.innerHTML = "+" +delay.getMinutes();
+				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
+				delayWrapper.textContent = delay > 0 ? "+" + delay : String(delay);
 			}
 			trWrapper.appendChild(delayWrapper);
 
@@ -180,11 +177,21 @@ Module.register("MMM-vvsDeparture", {
 	},
 
 
+	// Returns the delay in minutes, or null if there is no valid estimate
 	calculateDelay(departureTimePlanned, departureTimeEstimated){
-		timePlanned = new Date(departureTimePlanned);
-		timeEstimated = new Date(departureTimeEstimated);
-		var timeDiff = new Date(timeEstimated.getTime() - timePlanned.getTime());
-		return timeDiff
+		var timePlanned = Date.parse(departureTimePlanned);
+		var timeEstimated = Date.parse(departureTimeEstimated);
+		if (!Number.isFinite(timePlanned) || !Number.isFinite(timeEstimated)) {
+			return null;
+		}
+		return Math.round((timeEstimated - timePlanned) / 60000);
+	},
+
+	isCancelled : function(departure) {
+		var status = departure.realtimeStatus || [];
+		return departure.isCancelled === true
+			|| status.indexOf("TRIP_CANCELLED") >= 0
+			|| status.indexOf("DEPARTURE_CANCELLED") >= 0;
 	},
 
 	showNumber : function(number) {
