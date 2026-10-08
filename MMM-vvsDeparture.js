@@ -1,10 +1,9 @@
-/* Magic Mirror
+/* MagicMirror²
  * Module: MMM-vvsDeparture
  *
  * By Fabian Hinder
- * forked from nilaskappler
+ * forked from niklaskappler
  * MIT Licensed.
- *
  */
 Module.register("MMM-vvsDeparture", {
 
@@ -38,7 +37,7 @@ Module.register("MMM-vvsDeparture", {
 	// Overrides start function.
 	start: function () {
 		var self = this;
-		Log.log("Starting module: " + self.name + "as" + self.identifier);
+		Log.log("Starting module: " + self.name + " as " + self.identifier);
 
 		self.departure = [];
 		self.loaded = false;

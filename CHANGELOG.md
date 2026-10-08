@@ -37,4 +37,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create LICENSE
 
 ## [0.0.1]
-- Started [MagicMirror] Module for showing public transportation information from the VVS (Stuttgart) area  
+- Started MagicMirror² Module for showing public transportation information from the VVS (Stuttgart) area
