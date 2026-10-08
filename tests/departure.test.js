@@ -97,6 +97,7 @@ function createModule(config = {}) {
 
 function renderDepartures(departures, config = {}) {
 	const module = createModule(config);
+	module.loaded = true;
 	module.departure = departures;
 	module.station_name = "Ditzingen";
 	return module.getDom();
@@ -558,4 +559,27 @@ test("shows a message if the departures could not be loaded, until the next upda
 	});
 	assert.equal(rows(module.getDom()).length, 1);
 	assert.equal(module.getDom().querySelector("div.small"), null);
+});
+
+test("shows that it is loading until the first departures arrive", () => {
+	const module = createModule();
+	module.start();
+	assert.equal(module.getDom().textContent, "LOADING");
+	module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, {
+		locations: [{ disassembledName: "Ditzingen" }],
+		stopEvents: [createDeparture()]
+	});
+	assert.equal(rows(module.getDom()).length, 1);
+});
+
+test("shows an empty table if there are no departures", () => {
+	const module = createModule();
+	module.start();
+	module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, {
+		locations: [{ disassembledName: "Ditzingen" }],
+		stopEvents: []
+	});
+	const wrapper = module.getDom();
+	assert.notEqual(wrapper.querySelector("table"), null);
+	assert.equal(rows(wrapper).length, 0);
 });

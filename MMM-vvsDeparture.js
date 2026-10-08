@@ -43,6 +43,7 @@ Module.register("MMM-vvsDeparture", {
 		Log.log("Starting module: " + self.name + "as" + self.identifier);
 
 		self.departure = [];
+		self.loaded = false;
 		self.error = null;
 		self.station_name = self.config.station_name;
 		self.sendSocketNotification("GET_DEPARTURES",
@@ -61,6 +62,7 @@ Module.register("MMM-vvsDeparture", {
 				self.error = self.translate("STATION_NOT_FOUND", { STATION_ID: self.config.station_id });
 			} else {
 				self.error = null;
+				self.loaded = true;
 				self.departure = payload.stopEvents;
 				self.station_name = self.config.station_name ? self.config.station_name : payload.locations[0].disassembledName;
 			}
@@ -88,6 +90,13 @@ Module.register("MMM-vvsDeparture", {
 		// next update brings them
 		if (self.error) {
 			wrapper.appendChild(self.getMessageDom(self.error));
+			return wrapper;
+		}
+
+		// Until the first departures arrive. LOADING is a translation of
+		// MagicMirror.
+		if (!self.loaded) {
+			wrapper.appendChild(self.getMessageDom(self.translate("LOADING")));
 			return wrapper;
 		}
 
