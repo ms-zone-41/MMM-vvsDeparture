@@ -60,6 +60,10 @@ function rows(wrapper) {
 	return Array.from(wrapper.querySelectorAll("tr"), (row) => Array.from(row.children, (cell) => cell.textContent));
 }
 
+function delayCells(wrapper) {
+	return Array.from(wrapper.querySelectorAll("tr"), (row) => row.children[1]);
+}
+
 function time(date) {
 	return moment(date).format("HH:mm");
 }
@@ -108,4 +112,28 @@ test("only shows the configured lines and directions", () => {
 test("shows the station in the header", () => {
 	assert.equal(renderDepartures([]).querySelector("header").textContent, "Abfahrten von Ditzingen");
 	assert.equal(renderDepartures([], { offset: 10 }).querySelector("header").textContent, "Abfahrten von Ditzingen in 10 min.");
+});
+
+test("does not reuse the delay of the previous departure", () => {
+	const [first, second] = delayCells(renderDepartures([
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:56:00Z" }),
+		createDeparture({ departureTimePlanned: "2026-10-02T20:24:00Z" })
+	]));
+	assert.equal(first.textContent, "+2");
+	assert.equal(second.textContent, "");
+	assert.equal(second.className, "");
+});
+
+test("leaves the delay empty for a first departure without realtime data", () => {
+	const [cell] = delayCells(renderDepartures([createDeparture()]));
+	assert.equal(cell.textContent, "");
+	assert.equal(cell.className, "");
+});
+
+test("ignores estimates of departures that are not realtime controlled", () => {
+	const cells = delayCells(renderDepartures([
+		createDeparture({ isRealtimeControlled: false, departureTimeEstimated: "2026-10-02T19:56:00Z" }),
+		createDeparture({ departureTimeEstimated: "2026-10-02T19:56:00Z" })
+	]));
+	assert.deepEqual(cells.map((cell) => cell.textContent), ["", ""]);
 });

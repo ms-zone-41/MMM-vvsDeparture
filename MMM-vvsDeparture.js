@@ -107,26 +107,27 @@ Module.register("MMM-vvsDeparture", {
 				.format("HH:mm");
 			trWrapper.appendChild(clockWrapper);
 
-			// Delay
+			// Delay, only for departures with realtime data. Without them, the
+			// cell stays empty.
 			var delayWrapper = document.createElement("td");
 			if("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true){
 				var delay = this.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated);
-			}
-			if (delay.getMinutes() != 0) {
-				delayWrapper.className = "delay";
-				if (self.config.colorDelay) {
-					delayWrapper.className += " color";
+				if (delay.getMinutes() != 0) {
+					delayWrapper.className = "delay";
+					if (self.config.colorDelay) {
+						delayWrapper.className += " color";
+					}
+				} else {
+					delayWrapper.className = "nodelay";
+					if (self.config.colorNoDelay) {
+						delayWrapper.className += " color";
+					}
 				}
-			} else {
-				delayWrapper.className = "nodelay";
-				if (self.config.colorNoDelay) {
-					delayWrapper.className += " color";
+				if(isNaN(delay.getMinutes())){
+					delayWrapper.innerHTML = self.translate("CANCELED");
+				} else {
+					delayWrapper.innerHTML = "+" +delay.getMinutes();
 				}
-			}
-			if(isNaN(delay.getMinutes())){
-				delayWrapper.innerHTML = self.translate("CANCELED");
-			} else {
-				delayWrapper.innerHTML = "+" +delay.getMinutes();
 			}
 			trWrapper.appendChild(delayWrapper);
 
