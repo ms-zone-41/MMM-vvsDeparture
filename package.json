@@ -4,20 +4,23 @@
   "description": "A MagicMirror² module to display information about public transport in Stuttgart, Germany.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fhinder/MMM-vvsDeparture"
+    "url": "git+https://github.com/ms-zone-41/MMM-vvsDeparture.git"
   },
   "keywords": [
     "magicmirror",
     "magicmirror2",
     "vvs",
-    "public transport"
+    "stuttgart",
+    "public transport",
+    "departures"
   ],
   "author": "Fabian Hinder",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/fhinder/MMM-vvsDeparture/issues"
+    "url": "https://github.com/ms-zone-41/MMM-vvsDeparture/issues"
   },
-  "homepage": "https://github.com/fhinder/MMM-vvsDeparture#readme",
+  "homepage": "https://github.com/ms-zone-41/MMM-vvsDeparture#readme",
+  "type": "commonjs",
   "scripts": {
     "lint": "eslint",
     "test": "node --test"
@@ -26,6 +29,7 @@
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",
     "eslint": "^10.12.0",
+    "eslint-plugin-package-json": "^1.10.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.1"
   }
