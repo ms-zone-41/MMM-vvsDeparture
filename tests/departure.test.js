@@ -343,6 +343,12 @@ test("leaves the delay empty for a realtime departure without a valid estimate",
 	assert.deepEqual(cells.map((cell) => cell.className), ["", "", ""]);
 });
 
+test("shows lines and destinations as text, not as HTML", () => {
+	const wrapper = renderDepartures([createDeparture({ transportation: { number: "<b>S6</b>", destination: { name: "Weil der Stadt & <i>Calw</i>" } } })]);
+	assert.deepEqual(rows(wrapper)[0].slice(2), ["<b>S6</b>", "Weil der Stadt & <i>Calw</i>"]);
+	assert.equal(wrapper.querySelector("b, i"), null);
+});
+
 test("shows the time with two digits for the hour", () => {
 	const wrapper = renderDepartures([createDeparture({ departureTimePlanned: "2026-10-03T05:07:00Z" })]);
 	assert.equal(rows(wrapper)[0][0], "07:07");

@@ -127,7 +127,7 @@ Module.register("MMM-vvsDeparture", {
 			// departure is cancelled
 			var clockWrapper = document.createElement("td");
 			clockWrapper.className = cancelled ? "time cancelled" : "time";
-			clockWrapper.innerHTML = self.formatTime(currentValue.departureTimePlanned);
+			clockWrapper.textContent = self.formatTime(currentValue.departureTimePlanned);
 			trWrapper.appendChild(clockWrapper);
 
 			// Delay. A cancelled departure gets a ban sign. Otherwise the cell
@@ -144,20 +144,20 @@ Module.register("MMM-vvsDeparture", {
 				delayWrapper.appendChild(self.getIconDom("fa-regular fa-clock"));
 			} else if (delay !== null) {
 				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
-				delayWrapper.innerHTML = delay > 0 ? "+" + delay : String(delay);
+				delayWrapper.textContent = delay > 0 ? "+" + delay : String(delay);
 			}
 			trWrapper.appendChild(delayWrapper);
 
 			// Lane
 			var laneWrapper = document.createElement("td");
 			laneWrapper.className = "number";
-			laneWrapper.innerHTML = self.getNumbers(group).join("/");
+			laneWrapper.textContent = self.getNumbers(group).join("/");
 			trWrapper.appendChild(laneWrapper);
 
 			// Direction
 			var directionWrapper = document.createElement("td");
 			directionWrapper.className = "direction";
-			directionWrapper.innerHTML = self.getDestinations(group).join(", ");
+			directionWrapper.textContent = self.getDestinations(group).join(", ");
 			trWrapper.appendChild(directionWrapper);
 
 			trWrapper.className = "small dimmed";
