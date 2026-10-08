@@ -80,12 +80,6 @@ Module.register("MMM-vvsDeparture", {
 
 		var wrapper = document.createElement("div");
 
-		// Unless it is configured, the station name is only known after the
-		// first update
-		if (self.station_name) {
-			wrapper.appendChild(self.getHeaderDom());
-		}
-
 		// If the departures could not be loaded, show why instead, until the
 		// next update brings them
 		if (self.error) {
@@ -175,32 +169,22 @@ Module.register("MMM-vvsDeparture", {
 		return wrapper;
 	},
 
-	stringTemplateParser: function (expression, valueObj) {
-		const templateMatcher = /{{\s?([^{}\s]*)\s?}}/g;
-		let text = expression.replace(templateMatcher, (substring, value, index) => {
-			value = valueObj[value];
-			return value;
-		});
-		return text
-	},
-
-	getHeaderDom: function () {
+	// MagicMirror shows the header above the module. It names the station,
+	// unless a header is configured; an empty one hides the header. Unless
+	// station_name is configured, the station is only known after the first
+	// update.
+	getHeader: function () {
 		var self = this;
-
-		var headerWrappper = document.createElement("header");
-		if(self.config.offset && self.config.offset >= 0){
-			headerWrappper.innerHTML = self.stringTemplateParser(
-				self.translate("DIRECTIONS_FROM_WITH_OFFSET"),
-				{
-					STATION: self.station_name,
-					OFFSET: self.config.offset,
-				});
-		}else {
-			headerWrappper.innerHTML = self.stringTemplateParser(
-				self.translate("DIRECTIONS_FROM"),
-				{STATION: self.station_name});
+		if (typeof self.data.header === "string") {
+			return self.data.header;
 		}
-		return headerWrappper;
+		if (!self.station_name) {
+			return "";
+		}
+		if (self.config.offset && self.config.offset >= 0) {
+			return self.translate("DIRECTIONS_FROM_WITH_OFFSET", { STATION: self.station_name, OFFSET: self.config.offset });
+		}
+		return self.translate("DIRECTIONS_FROM", { STATION: self.station_name });
 	},
 
 	// Returns a message to show instead of the departures

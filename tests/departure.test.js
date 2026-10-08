@@ -86,6 +86,8 @@ function createModule(config = {}) {
 	return Object.assign(Object.create(definition), {
 		identifier: "module_0_MMM-vvsDeparture",
 		config: { ...definition.defaults, ...config },
+		// What MagicMirror passes from the configuration, e.g. the header
+		data: {},
 		// Like MagicMirror, fill in variables such as {STATION_ID}
 		translate(key, variables = {}) {
 			return (translations[key] || key).replace(/{([^{}]+)}/g, (placeholder, name) => (name in variables ? variables[name] : placeholder));
@@ -168,8 +170,21 @@ test("only shows the configured lines and directions", () => {
 });
 
 test("shows the station in the header", () => {
-	assert.equal(renderDepartures([]).querySelector("header").textContent, "Abfahrten von Ditzingen");
-	assert.equal(renderDepartures([], { offset: 10 }).querySelector("header").textContent, "Abfahrten von Ditzingen in 10 min.");
+	const header = (config) => Object.assign(createModule(config), { station_name: "Ditzingen" }).getHeader();
+	assert.equal(header(), "Abfahrten von Ditzingen");
+	assert.equal(header({ offset: 10 }), "Abfahrten von Ditzingen in 10 min.");
+});
+
+test("shows a configured header instead of the station", () => {
+	const module = Object.assign(createModule(), { station_name: "Ditzingen" });
+	module.data.header = "Zur Arbeit";
+	assert.equal(module.getHeader(), "Zur Arbeit");
+	module.data.header = "";
+	assert.equal(module.getHeader(), "");
+});
+
+test("leaves the header to MagicMirror", () => {
+	assert.equal(renderDepartures([createDeparture()]).querySelector("header"), null);
 });
 
 test("does not reuse the delay of the previous departure", () => {
@@ -344,18 +359,18 @@ test("shows the planned departure time, not the estimated one", () => {
 test("shows the configured station name before the first update", () => {
 	const module = createModule({ station_name: "Ditzingen" });
 	module.start();
-	assert.equal(module.getDom().querySelector("header").textContent, "Abfahrten von Ditzingen");
+	assert.equal(module.getHeader(), "Abfahrten von Ditzingen");
 });
 
 test("shows the station name from VVS once the first departures arrive", () => {
 	const module = createModule();
 	module.start();
-	assert.equal(module.getDom().querySelector("header"), null);
+	assert.equal(module.getHeader(), "");
 	module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, {
 		locations: [{ disassembledName: "Ditzingen" }],
 		stopEvents: []
 	});
-	assert.equal(module.getDom().querySelector("header").textContent, "Abfahrten von Ditzingen");
+	assert.equal(module.getHeader(), "Abfahrten von Ditzingen");
 });
 
 test("shows coupled trains in one row", () => {

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Show a message if VVS does not know the configured `station_id` or the departures could not be loaded, instead of nothing or the departures of the last update, and log the reason
 - Fetch 100 departures instead of 40, so that the table has more departures to show when the `number` or `direction` filter leaves out many of them, and its last row never shows only one part of a coupled train
 - Show “Loading …” until the first departures arrive
+- Show the station in the header that MagicMirror shows above the module. The `header` option of MagicMirror replaces it, and an empty `header` hides it
 
 ## [1.4.0] - 2020-01-09
 - Introduce offset parameter to show only connections in a certain offset
