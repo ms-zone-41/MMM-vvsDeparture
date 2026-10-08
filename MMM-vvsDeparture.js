@@ -26,7 +26,7 @@ Module.register("MMM-vvsDeparture", {
 
 	// Define required scripts.
 	getStyles: function () {
-		return ["MMM-vvsDeparture.css"];
+		return ["font-awesome.css", "MMM-vvsDeparture.css"];
 	},
 
 	// Load translations files
@@ -99,27 +99,30 @@ Module.register("MMM-vvsDeparture", {
 			// coupled train, which have the same time and cancellation state
 			var group = groups[i];
 			var currentValue = group[0];
+			var cancelled = self.isCancelled(currentValue);
 
 			// Row
 			var trWrapper = document.createElement("tr");
 
-			// Clock, with the planned departure
+			// Time, with the planned departure, which is struck through if the
+			// departure is cancelled
 			var clockWrapper = document.createElement("td");
-			clockWrapper.className = "time";
+			clockWrapper.className = cancelled ? "time cancelled" : "time";
 			clockWrapper.innerHTML = self.formatTime(currentValue.departureTimePlanned);
 			trWrapper.appendChild(clockWrapper);
 
-			// Delay. A cancelled departure is marked as such. Otherwise the cell
-			// shows the delay if the departure has realtime data with a valid
-			// estimate, and stays empty if not.
+			// Delay. A cancelled departure gets a ban sign. Otherwise the cell
+			// shows the delay, or a clock if the departure is on time, if the
+			// departure has realtime data with a valid estimate, and stays empty
+			// if not.
 			var delayWrapper = document.createElement("td");
 			var delay = self.getDelay(group);
-			if (self.isCancelled(currentValue)) {
+			if (cancelled) {
 				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
-				delayWrapper.innerHTML = self.translate("CANCELED");
+				delayWrapper.appendChild(self.getBanDom());
 			} else if (delay === 0) {
 				delayWrapper.className = self.config.colorNoDelay ? "nodelay color" : "nodelay";
-				delayWrapper.innerHTML = "+0";
+				delayWrapper.appendChild(self.getIconDom("fa-regular fa-clock"));
 			} else if (delay !== null) {
 				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
 				delayWrapper.innerHTML = delay > 0 ? "+" + delay : String(delay);
@@ -173,6 +176,37 @@ Module.register("MMM-vvsDeparture", {
 				{STATION: self.station_name});
 		}
 		return headerWrappper;
+	},
+
+	// Returns a Font Awesome icon, e.g. for "fa-regular fa-clock"
+	getIconDom: function (icon) {
+		var iconWrapper = document.createElement("span");
+		iconWrapper.className = icon + " fa-fw";
+		return iconWrapper;
+	},
+
+	// Returns a ban sign. Font Awesome Free has it only in the solid style,
+	// whose strokes are a third thicker than those of the regular clock, so
+	// the module draws it with the strokes of the regular style: a ring and a
+	// slash, 48 of 512 units wide. MMM-vvsDeparture.css gives it the size of
+	// an icon with fa-fw, in em, so that it scales with the font size like
+	// the clock. It has the colour of the text.
+	getBanDom: function () {
+		var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("class", "ban");
+		svg.setAttribute("viewBox", "0 0 512 512");
+		svg.setAttribute("aria-hidden", "true");
+		// The ring runs through the middle of the ring of the clock, from 208
+		// to 256 units from the centre. The slash goes from the top left to the
+		// bottom right and ends in the ring. Both are one path, so that they do
+		// not darken each other where they overlap if the colour is translucent.
+		var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		shape.setAttribute("d", "M256 24a232 232 0 1 1 0 464 232 232 0 1 1 0-464zM92 92 420 420");
+		shape.setAttribute("fill", "none");
+		shape.setAttribute("stroke", "currentColor");
+		shape.setAttribute("stroke-width", "48");
+		svg.appendChild(shape);
+		return svg;
 	},
 
 

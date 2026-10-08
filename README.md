@@ -9,8 +9,8 @@ It also will show any delays, based on the real time information provided by VVS
 The time column shows the planned departure. The column next to it shows the realtime status of each departure:
 
 - `+N` / `-N`: the departure is N minutes late / early. Like VVS, the module counts whole minutes, so a departure 36 seconds late is on time.
-- `+0`: the departure is on time
-- `canc.` / `gestr.`: the departure is cancelled
+- a clock: the departure is on time
+- a ban sign, with the departure time struck through: the departure is cancelled
 - empty: VVS has no realtime data for the departure
 
 Coupled trains, which VVS lists once for each line, are shown in one row, e.g. `S6/S60` between Stuttgart and Renningen. Departures are combined if they are trains of the same kind, i.e. S-Bahn, regional or long-distance trains, that leave at the same planned time from the same platform and have the same destination or come from the same origin. A train that splits later on shows all its destinations, e.g. `S6/S60 Weil der Stadt, Böblingen`. The row shows the earliest realtime estimate of its parts. If only some parts of a train are cancelled, they get rows of their own. Buses, Stadtbahn trains and trams are never combined, because several of them can leave a stop together to the same destination, e.g. U11 and U19 to NeckarPark (Stadion) on event days.

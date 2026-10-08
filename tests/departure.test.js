@@ -101,9 +101,18 @@ function renderDepartures(departures, config = {}) {
 	return module.getDom();
 }
 
-// The text of each cell, row by row: time, delay, line and direction
+// The icons for departures on time and cancelled departures
+const CLOCK = "fa-regular fa-clock fa-fw";
+const BAN = "ban";
+
+// The content of each cell, row by row: time, delay, line and direction
 function rows(wrapper) {
-	return Array.from(wrapper.querySelectorAll("tr"), (row) => Array.from(row.children, (cell) => cell.textContent));
+	return Array.from(wrapper.querySelectorAll("tr"), (row) => Array.from(row.children, content));
+}
+
+// The content of a cell: its text, with the classes of each icon in place
+function content(cell) {
+	return Array.from(cell.childNodes, (node) => (node.nodeType === node.TEXT_NODE ? node.textContent : node.getAttribute("class"))).join("");
 }
 
 function delayCells(wrapper) {
@@ -127,7 +136,7 @@ test("shows the time, delay, line and direction of each departure", () => {
 	]);
 	assert.deepEqual(rows(wrapper), [
 		[time("2026-10-02T19:54:00Z"), "+2", "S6", "Schwabstraße"],
-		[time("2026-10-02T20:01:00Z"), "+0", "S62", "Weil der Stadt"]
+		[time("2026-10-02T20:01:00Z"), CLOCK, "S62", "Weil der Stadt"]
 	]);
 });
 
@@ -194,11 +203,11 @@ test("shows early departures and delays of an hour or more", () => {
 	assert.deepEqual(cells.map((cell) => cell.className), ["delay color", "delay color"]);
 });
 
-test("shows +0 for a departure on time", () => {
+test("shows a clock for a departure on time", () => {
 	const departures = [createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:54:00Z" })];
 	const [coloured] = delayCells(renderDepartures(departures));
 	const [plain] = delayCells(renderDepartures(departures, { colorNoDelay: false }));
-	assert.equal(coloured.textContent, "+0");
+	assert.equal(content(coloured), CLOCK);
 	assert.equal(coloured.className, "nodelay color");
 	assert.equal(plain.className, "nodelay");
 });
@@ -210,7 +219,7 @@ test("cuts the delay to whole minutes like VVS does", () => {
 		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:53:42Z" }),
 		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:52:24Z" })
 	]));
-	assert.deepEqual(cells.map((cell) => cell.textContent), ["+0", "+4", "+0", "-1"]);
+	assert.deepEqual(cells.map(content), [CLOCK, "+4", CLOCK, "-1"]);
 	assert.equal(cells[2].className, "nodelay color");
 });
 
@@ -248,9 +257,7 @@ test("marks departures that VVS reports as cancelled", () => {
 		createDeparture({ isRealtimeControlled: true, realtimeStatus: ["MONITORED", "DEPARTURE_CANCELLED"] }),
 		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:54:00Z", realtimeStatus: ["MONITORED"] })
 	]));
-	assert.deepEqual(cells.map((cell) => cell.textContent), [
-		translations.CANCELED, translations.CANCELED, translations.CANCELED, translations.CANCELED, translations.CANCELED, "+0"
-	]);
+	assert.deepEqual(cells.map(content), [BAN, BAN, BAN, BAN, BAN, CLOCK]);
 	assert.equal(cells[0].className, "delay color");
 });
 
@@ -258,8 +265,55 @@ test("colours cancelled departures only if colorDelay is set", () => {
 	const [cell] = delayCells(renderDepartures([
 		createDeparture({ isCancelled: true, realtimeStatus: ["TRIP_CANCELLED"] })
 	], { colorDelay: false }));
-	assert.equal(cell.textContent, translations.CANCELED);
+	assert.equal(content(cell), BAN);
 	assert.equal(cell.className, "delay");
+});
+
+// Font Awesome Free has the ban sign only in the solid style, with thicker
+// strokes than the regular clock, so the module draws it itself
+test("draws the ban sign with the strokes and the size of a regular icon", () => {
+	const [cell] = delayCells(renderDepartures([
+		createDeparture({ isCancelled: true, realtimeStatus: ["TRIP_CANCELLED"] })
+	]));
+	const ban = cell.firstChild;
+	assert.equal(ban.namespaceURI, "http://www.w3.org/2000/svg");
+	assert.equal(ban.getAttribute("viewBox"), "0 0 512 512");
+	assert.equal(ban.children.length, 1);
+	const shape = ban.firstChild;
+	assert.equal(shape.namespaceURI, "http://www.w3.org/2000/svg");
+	// A ring from 208 to 256 units from the centre like the ring of the clock,
+	// and a slash from the top left to the bottom right that ends in the ring
+	assert.equal(shape.getAttribute("d"), "M256 24a232 232 0 1 1 0 464 232 232 0 1 1 0-464zM92 92 420 420");
+	assert.equal(shape.getAttribute("fill"), "none");
+	assert.equal(shape.getAttribute("stroke"), "currentColor");
+	assert.equal(shape.getAttribute("stroke-width"), "48");
+	// Sized in em like the icons of Font Awesome, so that it scales with the
+	// font size
+	const css = fs.readFileSync(path.join(__dirname, "../MMM-vvsDeparture.css"), "utf8");
+	assert.match(css, /\.departure \.ban \{\s*width: 1\.25em;\s*height: 1em;\s*vertical-align: -0\.125em;\s*overflow: visible;/);
+});
+
+test("strikes through the planned time of a cancelled departure", () => {
+	const wrapper = renderDepartures([
+		createDeparture({ isCancelled: true, realtimeStatus: ["TRIP_CANCELLED"] }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:56:00Z" })
+	]);
+	const [cancelled, late] = wrapper.querySelectorAll("td.time");
+	assert.equal(cancelled.textContent, time("2026-10-02T19:54:00Z"));
+	assert.equal(cancelled.className, "time cancelled");
+	assert.equal(late.className, "time");
+	const css = fs.readFileSync(path.join(__dirname, "../MMM-vvsDeparture.css"), "utf8");
+	assert.match(css, /\.departure \.time\.cancelled \{\s*text-decoration: line-through;/);
+});
+
+test("centers the realtime status in its column", () => {
+	const css = fs.readFileSync(path.join(__dirname, "../MMM-vvsDeparture.css"), "utf8");
+	assert.match(css, /\.departure \.delay \{[^}]*text-align: center;/);
+	assert.match(css, /\.departure \.nodelay \{[^}]*text-align: center;/);
+});
+
+test("loads the Font Awesome icons that MagicMirror provides", () => {
+	assert.ok(createModule().getStyles().includes("font-awesome.css"));
 });
 
 test("leaves the delay empty for a realtime departure without a valid estimate", () => {
@@ -448,9 +502,9 @@ test("shows a cancelled part of a coupled train on its own", () => {
 		createTrain("S60", { departureTimePlanned: "2026-10-02T20:24:00Z", isCancelled: true })
 	]);
 	assert.deepEqual(rows(wrapper).map((row) => row.slice(1, 3)), [
-		[translations.CANCELED, "S6"],
+		[BAN, "S6"],
 		["+2", "S60"],
-		[translations.CANCELED, "S6/S60"]
+		[BAN, "S6/S60"]
 	]);
 });
 

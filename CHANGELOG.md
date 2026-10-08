@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Show early departures (e.g. `-2`) and delays of an hour or more correctly
 - Show the configured station name in the header right away instead of `undefined` until the first update
 - Show coupled trains in one row, e.g. `S6/S60`
+- Mark departures on time with a clock instead of `+0`, and cancelled departures with a ban sign and a struck-through departure time instead of `canc.` / `gestr.`
 
 ## [1.4.0] - 2020-01-09
 - Introduce offset parameter to show only connections in a certain offset

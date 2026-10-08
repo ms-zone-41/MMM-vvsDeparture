@@ -4,8 +4,13 @@
     font-size: 80%;
 }
 
+.departure .time.cancelled {
+    text-decoration: line-through;
+}
+
 .departure .delay {
     padding-left: 10px;
+    text-align: center;
 }
 
 .departure .delay.color { 
@@ -14,10 +19,18 @@
 
 .departure .nodelay {
     padding-left: 10px;
+    text-align: center;
 }
 
 .departure .nodelay.color {
     color: greenyellow;
+}
+
+.departure .ban {
+    width: 1.25em;
+    height: 1em;
+    vertical-align: -0.125em;
+    overflow: visible;
 }
 
 .departure .number {
