@@ -137,6 +137,8 @@ The following properties can be configured:
 	</tbody>
 </table>
 
+The module loads the next 100 departures of the stop and then filters them. At a busy stop such as Stuttgart Hauptbahnhof, they cover only about half an hour, so with `number` or `direction` the table can show fewer departures than `maximumEntries`.
+
 ## Tests
 
 The tests use [node:test](https://nodejs.org/api/test.html) and the development dependencies of the module. Run them in the module directory:

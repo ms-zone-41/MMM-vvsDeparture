@@ -47,6 +47,20 @@ function createHelper(respond = () => ({ ok: true, status: 200, json: async () =
 	return { helper, timers, requests, notifications, logs };
 }
 
+// A response of fetch with the given answer of VVS
+function respondWith(answer) {
+	return () => ({ ok: true, status: 200, json: async () => answer });
+}
+
+// count departures, perMinute of them a minute from 17:00 UTC on, sorted by
+// their planned time as VVS sorts them
+function createStopEvents(count, perMinute = 1) {
+	return Array.from({ length: count }, (_, index) => ({
+		id: index,
+		departureTimePlanned: new Date(Date.UTC(2026, 9, 9, 17, Math.floor(index / perMinute))).toISOString().replace(".000Z", "Z")
+	}));
+}
+
 // What the module sends when it starts
 function getDepartures(helper, identifier = IDENTIFIER, config = {}) {
 	helper.socketNotificationReceived("GET_DEPARTURES", {
@@ -66,6 +80,57 @@ test("sends the departures to the module instance that asked for them", async ()
 	await settle();
 	assert.match(requests[0].url, /^https:\/\/www3\.vvs\.de\/mngvvs\/XML_DM_REQUEST\?.*name_dm=de:08118:7000/);
 	assert.deepEqual(notifications, [{ notification: `${IDENTIFIER}_NEW_DEPARTURES`, payload: DEPARTURES }]);
+});
+
+test("fetches 100 departures", () => {
+	const { helper, requests } = createHelper();
+	getDepartures(helper);
+	assert.match(requests[0].url, /[?&]limit=100&/);
+});
+
+test("leaves out the last minute if VVS sends as many departures as requested", async () => {
+	// Two departures a minute, like the parts of coupled trains. VVS may have
+	// cut off more departures of the last minute.
+	const stopEvents = createStopEvents(100, 2);
+	const { helper, notifications } = createHelper(respondWith({ ...DEPARTURES, stopEvents }));
+	getDepartures(helper);
+	await settle();
+	assert.deepEqual(notifications[0].payload.stopEvents, stopEvents.slice(0, 98));
+	assert.deepEqual(notifications[0].payload.locations, DEPARTURES.locations);
+});
+
+test("leaves out the last minute if VVS cut it off after its first departure", async () => {
+	// Three departures a minute: the last minute has only one of them, e.g.
+	// one part of a coupled train
+	const stopEvents = createStopEvents(100, 3);
+	const { helper, notifications } = createHelper(respondWith({ ...DEPARTURES, stopEvents }));
+	getDepartures(helper);
+	await settle();
+	assert.deepEqual(notifications[0].payload.stopEvents, stopEvents.slice(0, 99));
+});
+
+test("keeps all departures if VVS sends fewer than requested", async () => {
+	const stopEvents = createStopEvents(99);
+	const { helper, notifications } = createHelper(respondWith({ ...DEPARTURES, stopEvents }));
+	getDepartures(helper);
+	await settle();
+	assert.deepEqual(notifications[0].payload.stopEvents, stopEvents);
+});
+
+test("passes on the answer of VVS for a station that it does not know", async () => {
+	const answer = { version: "10.6.21.17", systemMessages: [], locations: [] };
+	const { helper, notifications } = createHelper(respondWith(answer));
+	getDepartures(helper);
+	await settle();
+	assert.deepEqual(notifications, [{ notification: `${IDENTIFIER}_NEW_DEPARTURES`, payload: answer }]);
+});
+
+test("keeps the departures if all of them leave in the same minute", async () => {
+	const stopEvents = Array(100).fill(createStopEvents(1)[0]);
+	const { helper, notifications } = createHelper(respondWith({ ...DEPARTURES, stopEvents }));
+	getDepartures(helper);
+	await settle();
+	assert.equal(notifications[0].payload.stopEvents.length, 100);
 });
 
 test("fetches the departures again after each update interval", () => {

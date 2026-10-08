@@ -13,6 +13,11 @@ const Log = require('logger');
 
 const BASE_URL = "https://www3.vvs.de";
 
+// The number of departures to fetch. VVS counts the departures of all lines
+// and directions, so the module needs many more than it shows when the
+// configuration filters them.
+const LIMIT = 100;
+
 module.exports = NodeHelper.create({
 	// fetch is built into Node.js 18, which MagicMirror² requires since 2.25.0
 	requiresVersion: "2.25.0",
@@ -61,7 +66,7 @@ module.exports = NodeHelper.create({
 		var self = this;
 		
 		var path = '/mngvvs/XML_DM_REQUEST?' +
-			`limit=40&`+
+			`limit=${LIMIT}&`+
 			`mode=direct&`+
 			`name_dm=${stationId}&`+
 			`outputFormat=rapidJSON&`+ //`outputFormat=JSON&`
@@ -88,11 +93,31 @@ module.exports = NodeHelper.create({
 			return response.json();
 		})
 		.then(function (data) {
-			self.sendSocketNotification(moduleIdentifier+"_NEW_DEPARTURES", data);
+			self.sendSocketNotification(moduleIdentifier+"_NEW_DEPARTURES", self.withoutIncompleteMinute(data));
 		})
 		.catch(function (error) {
 			Log.error(self.name + ": Could not load the departures of " + stationId + " from VVS: " + error.message);
 			self.sendSocketNotification(moduleIdentifier + "_ERROR", { message: error.message });
 		});
+	},
+
+	// VVS sorts the departures by their planned time and cuts them off at the
+	// limit, even within a minute. If it sends as many departures as requested,
+	// those of the last minute may be incomplete, e.g. only one part of a
+	// coupled train. Leave them out, unless they are all there is. VVS answers a
+	// station that it does not know without departures.
+	withoutIncompleteMinute: function (data) {
+		var stopEvents = data && data.stopEvents;
+		if (!Array.isArray(stopEvents) || stopEvents.length < LIMIT) {
+			return data;
+		}
+		var lastMinute = stopEvents[stopEvents.length - 1].departureTimePlanned;
+		var complete = stopEvents.filter(function (stopEvent) {
+			return stopEvent.departureTimePlanned !== lastMinute;
+		});
+		if (complete.length === 0) {
+			return data;
+		}
+		return Object.assign({}, data, { stopEvents: complete });
 	}
 });
