@@ -17,5 +17,12 @@
   "bugs": {
     "url": "https://github.com/fhinder/MMM-vvsDeparture/issues"
   },
-  "homepage": "https://github.com/fhinder/MMM-vvsDeparture#readme"
+  "homepage": "https://github.com/fhinder/MMM-vvsDeparture#readme",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.1",
+    "moment": "^2.31.0"
+  }
 }

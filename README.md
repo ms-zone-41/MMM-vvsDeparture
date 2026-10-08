@@ -128,3 +128,12 @@ The following properties can be configured:
 	</tbody>
 </table>
 
+## Tests
+
+The tests use [node:test](https://nodejs.org/api/test.html) and the development dependencies of the module. Run them in the module directory:
+
+```shell
+npm install
+npm test
+```
+
