@@ -17,6 +17,19 @@ module.exports = NodeHelper.create({
 	// fetch is built into Node.js 18, which MagicMirror² requires since 2.25.0
 	requiresVersion: "2.25.0",
 
+	start: function () {
+		// The update timer of each module instance, by its identifier
+		this.timers = {};
+	},
+
+	stop: function () {
+		var self = this;
+		Object.keys(self.timers).forEach(function (identifier) {
+			clearInterval(self.timers[identifier]);
+		});
+		self.timers = {};
+	},
+
 	/* socketNotificationReceived(notification, payload)
 	 * This method is called when a socket notification arrives.
 	 *
@@ -27,11 +40,15 @@ module.exports = NodeHelper.create({
 		var self = this;
 
 		if (notification === "GET_DEPARTURES") {
+			// A module instance asks again whenever the page is loaded again,
+			// and every browser that shows the mirror asks as well. Replace the
+			// timer of the instance instead of starting one more.
+			clearInterval(self.timers[payload.identifier]);
 			self.retrieveStationData(
 				payload.config.station_id,
 				payload.config.offset,
 				payload.identifier);
-			setInterval(function () {
+			self.timers[payload.identifier] = setInterval(function () {
 				self.retrieveStationData(
 					payload.config.station_id,
 					payload.config.offset,
