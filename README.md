@@ -141,10 +141,11 @@ The module loads the next 100 departures of the stop and then filters them. At a
 
 ## Tests
 
-The tests use [node:test](https://nodejs.org/api/test.html) and the development dependencies of the module. Run them in the module directory:
+The tests use [node:test](https://nodejs.org/api/test.html) and the development dependencies of the module. Run them and [ESLint](https://eslint.org) in the module directory:
 
 ```shell
 npm install
 npm test
+node --run lint
 ```
 

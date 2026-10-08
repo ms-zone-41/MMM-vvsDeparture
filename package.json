@@ -19,9 +19,13 @@
   },
   "homepage": "https://github.com/fhinder/MMM-vvsDeparture#readme",
   "scripts": {
+    "lint": "eslint",
     "test": "node --test"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
     "jsdom": "^30.1.1"
   }
 }
