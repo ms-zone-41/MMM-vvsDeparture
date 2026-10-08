@@ -22,7 +22,7 @@ Module.register("MMM-vvsDeparture", {
 		offset: undefined
 	},
 
-	requiresVersion: "2.1.0", // Required version of MagicMirror
+	requiresVersion: "2.25.0", // Required version of MagicMirror, for fetch in the node helper
 
 	// Define required scripts.
 	getStyles: function () {

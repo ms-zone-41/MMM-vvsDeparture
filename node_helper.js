@@ -9,12 +9,14 @@
  */
  
 var NodeHelper = require("node_helper");
-var Axios = require('axios');
 const Log = require('logger');
 
 const BASE_URL = "https://www3.vvs.de";
 
 module.exports = NodeHelper.create({
+	// fetch is built into Node.js 18, which MagicMirror² requires since 2.25.0
+	requiresVersion: "2.25.0",
+
 	/* socketNotificationReceived(notification, payload)
 	 * This method is called when a socket notification arrives.
 	 *
@@ -60,15 +62,15 @@ module.exports = NodeHelper.create({
 		}
 		var url = BASE_URL + path;
 		
-		var config = {
-			method: 'get',
-			url: encodeURI(url),
-			headers: {}
-		};
-
-		Axios(config)
+		fetch(encodeURI(url))
 		.then(function (response) {
-			self.sendSocketNotification(moduleIdentifier+"_NEW_DEPARTURES", (response.data));
+			if (!response.ok) {
+				throw new Error("HTTP " + response.status);
+			}
+			return response.json();
+		})
+		.then(function (data) {
+			self.sendSocketNotification(moduleIdentifier+"_NEW_DEPARTURES", data);
 		})
 		.catch(function (error) {
 			self.sendSocketNotification(moduleIdentifier + "_ERROR", error);

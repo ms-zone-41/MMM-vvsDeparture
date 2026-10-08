@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Fetch the departures with the fetch API of Node.js instead of `axios`, which the module used but did not declare, so that a fresh install failed. The module has no dependencies to install anymore and requires MagicMirror² 2.25.0 or newer
 
 ## [1.4.0] - 2020-01-09
 - Introduce offset parameter to show only connections in a certain offset
