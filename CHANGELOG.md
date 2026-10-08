@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Show departures as cancelled when VVS reports them as cancelled. A departure whose realtime estimate is missing or invalid is no longer shown as cancelled
 - Show early departures (e.g. `-2`) and delays of an hour or more correctly
 - Show the configured station name in the header right away instead of `undefined` until the first update
+- Show coupled trains in one row, e.g. `S6/S60`
 
 ## [1.4.0] - 2020-01-09
 - Introduce offset parameter to show only connections in a certain offset
