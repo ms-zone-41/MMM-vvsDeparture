@@ -4,12 +4,12 @@
  * By Fabian Hinder
  * forked from nilaskappler
  * MIT Licensed.
- * 
+ *
  */
 Module.register("MMM-vvsDeparture", {
 
 	defaults: {
-		station_id: 'de:08111:6112',
+		station_id: "de:08111:6112",
 		station_name: "",
 		maximumEntries: 6,
 		reloadInterval: 1 * 60 * 1000, // every minute
@@ -28,7 +28,7 @@ Module.register("MMM-vvsDeparture", {
 	},
 
 	// Load translations files
-	getTranslations: function() {
+	getTranslations: function () {
 		return {
 			en: "translations/en.json",
 			de: "translations/de.json"
@@ -46,8 +46,8 @@ Module.register("MMM-vvsDeparture", {
 		self.station_name = self.config.station_name;
 		self.sendSocketNotification("GET_DEPARTURES",
 			{
-				"config": self.config,
-				"identifier": this.identifier,
+				config: self.config,
+				identifier: this.identifier
 			});
 	},
 
@@ -224,7 +224,6 @@ Module.register("MMM-vvsDeparture", {
 		return svg;
 	},
 
-
 	// Returns the local time of a timestamp as HH:mm
 	formatTime: function (timestamp) {
 		var date = new Date(timestamp);
@@ -235,7 +234,7 @@ Module.register("MMM-vvsDeparture", {
 	// Like the delay that VVS reports itself, the fraction of a minute is cut
 	// off, so a departure 36 seconds late is on time. For a departure a few
 	// seconds early, Math.trunc returns -0, which equals 0.
-	calculateDelay(departureTimePlanned, departureTimeEstimated){
+	calculateDelay(departureTimePlanned, departureTimeEstimated) {
 		var timePlanned = Date.parse(departureTimePlanned);
 		var timeEstimated = Date.parse(departureTimeEstimated);
 		if (!Number.isFinite(timePlanned) || !Number.isFinite(timeEstimated)) {
@@ -247,7 +246,7 @@ Module.register("MMM-vvsDeparture", {
 	// VVS reports a cancelled departure with isCancelled, or with TRIP_CANCELLED
 	// or DEPARTURE_CANCELLED in realtimeStatus. Such departures usually have no
 	// realtime flag and no estimate.
-	isCancelled : function(departure) {
+	isCancelled: function (departure) {
 		var status = departure.realtimeStatus || [];
 		return departure.isCancelled === true
 			|| status.indexOf("TRIP_CANCELLED") >= 0
@@ -265,17 +264,20 @@ Module.register("MMM-vvsDeparture", {
 	// U11 and U19 to NeckarPark (Stadion) at Cannstatter Wasen on event days.
 	// If only some parts of a train are cancelled, the parts are not grouped
 	// either.
-	groupCoupledTrains : function(departures) {
+	groupCoupledTrains: function (departures) {
 		var self = this;
 		var groups = [];
 		departures.forEach(function (departure) {
 			var key = self.getCoupledTrainKey(departure);
-			var group = key === null ? undefined : groups.find(function (candidate) {
-				return candidate.key === key && candidate.departures.some(function (part) {
-					return self.isSameStop(part.transportation.destination, departure.transportation.destination)
-						|| self.isSameStop(part.transportation.origin, departure.transportation.origin);
+			var group;
+			if (key !== null) {
+				group = groups.find(function (candidate) {
+					return candidate.key === key && candidate.departures.some(function (part) {
+						return self.isSameStop(part.transportation.destination, departure.transportation.destination)
+							|| self.isSameStop(part.transportation.origin, departure.transportation.origin);
+					});
 				});
-			});
+			}
 			if (group) {
 				group.departures.push(departure);
 			} else {
@@ -292,7 +294,7 @@ Module.register("MMM-vvsDeparture", {
 
 	// Returns the key that the parts of a coupled train have in common, or null
 	// if the departure is not one of a train or its platform is unknown
-	getCoupledTrainKey : function(departure) {
+	getCoupledTrainKey: function (departure) {
 		// EFA product classes of trains: train, S-Bahn, and regional and
 		// long-distance trains. U-Bahn, Stadtbahn and tram (2 to 4) are left out.
 		var trainClasses = [0, 1, 13, 14, 15, 16];
@@ -314,7 +316,7 @@ Module.register("MMM-vvsDeparture", {
 	// match the name, e.g. "6" for "Gleis 1" at Grunbach; then the departure is
 	// not combined with a part of its train at the platform of that name. Some
 	// extra trips only have a name, which VVS also writes as "13".
-	getPlatform : function(departure) {
+	getPlatform: function (departure) {
 		var location = departure.location;
 		if (!location || !location.id) {
 			return null;
@@ -330,7 +332,7 @@ Module.register("MMM-vvsDeparture", {
 	},
 
 	// Returns true if both stops are known and the same
-	isSameStop : function(stop, other) {
+	isSameStop: function (stop, other) {
 		if (!stop || !other) {
 			return false;
 		}
@@ -344,7 +346,7 @@ Module.register("MMM-vvsDeparture", {
 	// none of them has realtime data. The parts of a coupled train usually have
 	// the same estimate. If not, the earliest one is used, so that the train is
 	// not missed.
-	getDelay : function(departures) {
+	getDelay: function (departures) {
 		var self = this;
 		var delays = departures.map(function (departure) {
 			return departure.isRealtimeControlled === true
@@ -357,43 +359,43 @@ Module.register("MMM-vvsDeparture", {
 	},
 
 	// Returns the line numbers of the departures of a row, each once
-	getNumbers : function(departures) {
+	getNumbers: function (departures) {
 		return this.unique(departures.map(function (departure) {
 			return departure.transportation.number;
 		}));
 	},
 
 	// Returns the destinations of the departures of a row, each once
-	getDestinations : function(departures) {
+	getDestinations: function (departures) {
 		return this.unique(departures.map(function (departure) {
 			return departure.transportation.destination.name;
 		}));
 	},
 
-	unique : function(values) {
+	unique: function (values) {
 		return values.filter(function (value, index) {
 			return values.indexOf(value) === index;
 		});
 	},
 
-	showNumber : function(number) {
+	showNumber: function (number) {
 		var self = this;
 		return self.isValue(number, self.config.number);
 	},
 
-	showDirection : function(direction) {
+	showDirection: function (direction) {
 		var self = this;
 		return self.isValue(direction, self.config.direction);
 	},
 
-	isValue : function(input, value) {
-		if(!value || !input) {
+	isValue: function (input, value) {
+		if (!value || !input) {
 			return true;
-		} else if(value instanceof Array) {
+		} else if (value instanceof Array) {
 			return value.indexOf(input) >= 0;
 		} else if (typeof value === "string" || value instanceof String) {
 			return value === input;
-		} else if(typeof value === "function" || value instanceof Function) {
+		} else if (typeof value === "function" || value instanceof Function) {
 			return value(input);
 		}
 		return false;
