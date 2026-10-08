@@ -1,4 +1,6 @@
 {
 	"DIRECTIONS_FROM": "Abfahrten von {{STATION}}",
-	"DIRECTIONS_FROM_WITH_OFFSET": "Abfahrten von {{STATION}} in {{OFFSET}} min."
+	"DIRECTIONS_FROM_WITH_OFFSET": "Abfahrten von {{STATION}} in {{OFFSET}} min.",
+	"STATION_NOT_FOUND": "Haltestelle {STATION_ID} nicht gefunden",
+	"LOAD_ERROR": "Abfahrten konnten nicht von VVS geladen werden"
 }

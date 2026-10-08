@@ -40,7 +40,8 @@ function createHelper(respond = () => ({ ok: true, status: 200, json: async () =
 	vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../node_helper.js"), "utf8"), context);
 	const helper = Object.assign(Object.create(context.module.exports), {
 		name: "MMM-vvsDeparture",
-		sendSocketNotification: (notification, payload) => notifications.push({ notification, payload })
+		// Like socket.io, send the payload as JSON
+		sendSocketNotification: (notification, payload) => notifications.push({ notification, payload: JSON.parse(JSON.stringify(payload)) })
 	});
 	helper.start();
 	return { helper, timers, requests, notifications, logs };
@@ -98,4 +99,28 @@ test("stops the update timers when MagicMirror stops", () => {
 	getDepartures(helper, "module_1_MMM-vvsDeparture");
 	helper.stop();
 	assert.equal(timers.size, 0);
+});
+
+test("logs and reports errors of VVS to the module instance", async () => {
+	const { helper, notifications, logs } = createHelper(() => ({ ok: false, status: 503, json: async () => ({}) }));
+	getDepartures(helper);
+	await settle();
+	assert.deepEqual(notifications, [{ notification: `${IDENTIFIER}_ERROR`, payload: { message: "HTTP 503" } }]);
+	assert.deepEqual(logs, ["MMM-vvsDeparture: Could not load the departures of de:08118:7000 from VVS: HTTP 503"]);
+});
+
+test("reports a network error to the module instance", async () => {
+	const { helper, notifications, logs } = createHelper(() => {
+		throw new TypeError("fetch failed");
+	});
+	getDepartures(helper);
+	await settle();
+	assert.deepEqual(notifications, [{ notification: `${IDENTIFIER}_ERROR`, payload: { message: "fetch failed" } }]);
+	assert.equal(logs.length, 1);
+});
+
+test("gives up a request after 30 seconds", () => {
+	const { helper, requests } = createHelper();
+	getDepartures(helper);
+	assert.ok(requests[0].options.signal instanceof AbortSignal);
 });

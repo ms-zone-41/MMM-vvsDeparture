@@ -1,4 +1,6 @@
 {
 	"DIRECTIONS_FROM": "Departures from {{STATION}}",
-	"DIRECTIONS_FROM_WITH_OFFSET": "Departures from {{STATION}} in {{OFFSET}} min."
+	"DIRECTIONS_FROM_WITH_OFFSET": "Departures from {{STATION}} in {{OFFSET}} min.",
+	"STATION_NOT_FOUND": "Station {STATION_ID} not found",
+	"LOAD_ERROR": "Could not load the departures from VVS"
 }

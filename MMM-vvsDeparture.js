@@ -43,6 +43,7 @@ Module.register("MMM-vvsDeparture", {
 		Log.log("Starting module: " + self.name + "as" + self.identifier);
 
 		self.departure = [];
+		self.error = null;
 		self.station_name = self.config.station_name;
 		self.sendSocketNotification("GET_DEPARTURES",
 			{
@@ -55,11 +56,19 @@ Module.register("MMM-vvsDeparture", {
 	socketNotificationReceived: function (notification, payload) {
 		var self = this;
 		if (notification === this.identifier + "_NEW_DEPARTURES") {
-			self.departure = payload.stopEvents;
-			self.station_name = self.config.station_name ? self.config.station_name : payload.locations[0].disassembledName;
+			// VVS answers a station_id that it does not know without locations
+			if (!payload.locations || payload.locations.length === 0) {
+				self.error = self.translate("STATION_NOT_FOUND", { STATION_ID: self.config.station_id });
+			} else {
+				self.error = null;
+				self.departure = payload.stopEvents;
+				self.station_name = self.config.station_name ? self.config.station_name : payload.locations[0].disassembledName;
+			}
 			self.updateDom();
 		} else if (notification === this.identifier + "_ERROR") {
-
+			// The node helper logs the details
+			self.error = self.translate("LOAD_ERROR");
+			self.updateDom();
 		}
 	},
 
@@ -73,6 +82,13 @@ Module.register("MMM-vvsDeparture", {
 		// first update
 		if (self.station_name) {
 			wrapper.appendChild(self.getHeaderDom());
+		}
+
+		// If the departures could not be loaded, show why instead, until the
+		// next update brings them
+		if (self.error) {
+			wrapper.appendChild(self.getMessageDom(self.error));
+			return wrapper;
 		}
 
 		var tableWrapper = document.createElement("table");
@@ -176,6 +192,14 @@ Module.register("MMM-vvsDeparture", {
 				{STATION: self.station_name});
 		}
 		return headerWrappper;
+	},
+
+	// Returns a message to show instead of the departures
+	getMessageDom: function (message) {
+		var messageWrapper = document.createElement("div");
+		messageWrapper.className = "small dimmed";
+		messageWrapper.textContent = message;
+		return messageWrapper;
 	},
 
 	// Returns a Font Awesome icon, e.g. for "fa-regular fa-clock"

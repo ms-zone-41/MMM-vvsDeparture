@@ -86,8 +86,9 @@ function createModule(config = {}) {
 	return Object.assign(Object.create(definition), {
 		identifier: "module_0_MMM-vvsDeparture",
 		config: { ...definition.defaults, ...config },
-		translate(key) {
-			return translations[key] || key;
+		// Like MagicMirror, fill in variables such as {STATION_ID}
+		translate(key, variables = {}) {
+			return (translations[key] || key).replace(/{([^{}]+)}/g, (placeholder, name) => (name in variables ? variables[name] : placeholder));
 		},
 		sendSocketNotification() {},
 		updateDom() {}
@@ -527,4 +528,34 @@ test("shows a line once if a coupled train has it twice", () => {
 
 test("renders an empty table if VVS sends no departures", () => {
 	assert.equal(rows(renderDepartures(undefined)).length, 0);
+});
+
+test("shows a message if VVS does not know the station", () => {
+	const module = createModule({ station_id: "de:08111:999999" });
+	module.start();
+	// This is how VVS answers a station_id that it does not know
+	module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, { version: "10.6.21.17", systemMessages: [], locations: [] });
+	const wrapper = module.getDom();
+	assert.equal(wrapper.textContent, "Haltestelle de:08111:999999 nicht gefunden");
+	assert.equal(wrapper.querySelector("table"), null);
+});
+
+test("shows a message if the departures could not be loaded, until the next update", () => {
+	const module = createModule({ station_name: "Ditzingen" });
+	module.start();
+	module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, {
+		locations: [{ disassembledName: "Ditzingen" }],
+		stopEvents: [createDeparture()]
+	});
+	module.socketNotificationReceived(`${module.identifier}_ERROR`, { message: "HTTP 503" });
+	const message = module.getDom();
+	assert.equal(message.querySelector("div").textContent, "Abfahrten konnten nicht von VVS geladen werden");
+	assert.equal(message.querySelector("table"), null);
+
+	module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, {
+		locations: [{ disassembledName: "Ditzingen" }],
+		stopEvents: [createDeparture()]
+	});
+	assert.equal(rows(module.getDom()).length, 1);
+	assert.equal(module.getDom().querySelector("div.small"), null);
 });

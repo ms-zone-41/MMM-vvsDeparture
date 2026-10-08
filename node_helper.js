@@ -79,7 +79,8 @@ module.exports = NodeHelper.create({
 		}
 		var url = BASE_URL + path;
 		
-		fetch(encodeURI(url))
+		// Give up a request that VVS does not answer, before the next one
+		fetch(encodeURI(url), { signal: AbortSignal.timeout(30 * 1000) })
 		.then(function (response) {
 			if (!response.ok) {
 				throw new Error("HTTP " + response.status);
@@ -90,8 +91,8 @@ module.exports = NodeHelper.create({
 			self.sendSocketNotification(moduleIdentifier+"_NEW_DEPARTURES", data);
 		})
 		.catch(function (error) {
-			self.sendSocketNotification(moduleIdentifier + "_ERROR", error);
-			//Log.error(error);
+			Log.error(self.name + ": Could not load the departures of " + stationId + " from VVS: " + error.message);
+			self.sendSocketNotification(moduleIdentifier + "_ERROR", { message: error.message });
 		});
 	}
 });
