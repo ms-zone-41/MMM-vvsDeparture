@@ -111,25 +111,18 @@ Module.register("MMM-vvsDeparture", {
 			// shows the delay if the departure has realtime data with a valid
 			// estimate, and stays empty if not.
 			var delayWrapper = document.createElement("td");
+			var delay = currentValue.isRealtimeControlled === true
+				? self.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated)
+				: null;
 			if (self.isCancelled(currentValue)) {
 				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
 				delayWrapper.innerHTML = self.translate("CANCELED");
-			} else if("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true){
-				var delay = this.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated);
-				if (!isNaN(delay.getMinutes())) {
-					if (delay.getMinutes() != 0) {
-						delayWrapper.className = "delay";
-						if (self.config.colorDelay) {
-							delayWrapper.className += " color";
-						}
-					} else {
-						delayWrapper.className = "nodelay";
-						if (self.config.colorNoDelay) {
-							delayWrapper.className += " color";
-						}
-					}
-					delayWrapper.innerHTML = "+" +delay.getMinutes();
-				}
+			} else if (delay === 0) {
+				delayWrapper.className = self.config.colorNoDelay ? "nodelay color" : "nodelay";
+				delayWrapper.innerHTML = "+0";
+			} else if (delay !== null) {
+				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
+				delayWrapper.innerHTML = delay > 0 ? "+" + delay : String(delay);
 			}
 			trWrapper.appendChild(delayWrapper);
 
@@ -183,11 +176,17 @@ Module.register("MMM-vvsDeparture", {
 	},
 
 
+	// Returns the delay in whole minutes, or null if there is no valid estimate.
+	// Like the delay that VVS reports itself, the fraction of a minute is cut
+	// off, so a departure 36 seconds late is on time. For a departure a few
+	// seconds early, Math.trunc returns -0, which equals 0.
 	calculateDelay(departureTimePlanned, departureTimeEstimated){
-		timePlanned = new Date(departureTimePlanned);
-		timeEstimated = new Date(departureTimeEstimated);
-		var timeDiff = new Date(timeEstimated.getTime() - timePlanned.getTime());
-		return timeDiff
+		var timePlanned = Date.parse(departureTimePlanned);
+		var timeEstimated = Date.parse(departureTimeEstimated);
+		if (!Number.isFinite(timePlanned) || !Number.isFinite(timeEstimated)) {
+			return null;
+		}
+		return Math.trunc((timeEstimated - timePlanned) / 60000);
 	},
 
 	// VVS reports a cancelled departure with isCancelled, or with TRIP_CANCELLED

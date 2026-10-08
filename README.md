@@ -6,7 +6,12 @@ The `MMM-vvsDeparture` module is a module designed to display the departures tim
 
 It also will show any delays, based on the real time information provided by VVS.
 
-The time column shows the planned departure. The column next to it shows the delay of each departure in minutes, or `canc.` / `gestr.` if VVS reports the departure as cancelled. It stays empty if VVS has no realtime data for the departure.
+The time column shows the planned departure. The column next to it shows the realtime status of each departure:
+
+- `+N` / `-N`: the departure is N minutes late / early. Like VVS, the module counts whole minutes, so a departure 36 seconds late is on time.
+- `+0`: the departure is on time
+- `canc.` / `gestr.`: the departure is cancelled
+- empty: VVS has no realtime data for the departure
 
 Example:
 

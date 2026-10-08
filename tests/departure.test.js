@@ -138,6 +138,57 @@ test("ignores estimates of departures that are not realtime controlled", () => {
 	assert.deepEqual(cells.map((cell) => cell.textContent), ["", ""]);
 });
 
+test("shows early departures and delays of an hour or more", () => {
+	const cells = delayCells(renderDepartures([
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:52:00Z" }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T21:04:00Z" })
+	]));
+	assert.deepEqual(cells.map((cell) => cell.textContent), ["-2", "+70"]);
+	assert.deepEqual(cells.map((cell) => cell.className), ["delay color", "delay color"]);
+});
+
+test("shows +0 for a departure on time", () => {
+	const departures = [createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:54:00Z" })];
+	const [coloured] = delayCells(renderDepartures(departures));
+	const [plain] = delayCells(renderDepartures(departures, { colorNoDelay: false }));
+	assert.equal(coloured.textContent, "+0");
+	assert.equal(coloured.className, "nodelay color");
+	assert.equal(plain.className, "nodelay");
+});
+
+test("cuts the delay to whole minutes like VVS does", () => {
+	const cells = delayCells(renderDepartures([
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:54:36Z" }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:58:30Z" }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:53:42Z" }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:52:24Z" })
+	]));
+	assert.deepEqual(cells.map((cell) => cell.textContent), ["+0", "+4", "+0", "-1"]);
+	assert.equal(cells[2].className, "nodelay color");
+});
+
+test("colours the delay only if colorDelay is set", () => {
+	const [cell] = delayCells(renderDepartures([
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:56:00Z" })
+	], { colorDelay: false }));
+	assert.equal(cell.textContent, "+2");
+	assert.equal(cell.className, "delay");
+});
+
+test("calculates the delay independently of the time zone", () => {
+	// India is 5:30 hours ahead of UTC, so a delay read from a Date showed +32
+	const timeZone = process.env.TZ;
+	process.env.TZ = "Asia/Kolkata";
+	try {
+		const [cell] = delayCells(renderDepartures([
+			createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:56:00Z" })
+		]));
+		assert.equal(cell.textContent, "+2");
+	} finally {
+		process.env.TZ = timeZone;
+	}
+});
+
 test("marks departures that VVS reports as cancelled", () => {
 	const cells = delayCells(renderDepartures([
 		// This is how VVS reports cancelled trips (no realtime flag, no estimate):
@@ -167,8 +218,9 @@ test("colours cancelled departures only if colorDelay is set", () => {
 test("leaves the delay empty for a realtime departure without a valid estimate", () => {
 	const cells = delayCells(renderDepartures([
 		createDeparture({ isRealtimeControlled: true }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: null }),
 		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "invalid" })
 	]));
-	assert.deepEqual(cells.map((cell) => cell.textContent), ["", ""]);
-	assert.deepEqual(cells.map((cell) => cell.className), ["", ""]);
+	assert.deepEqual(cells.map((cell) => cell.textContent), ["", "", ""]);
+	assert.deepEqual(cells.map((cell) => cell.className), ["", "", ""]);
 });
