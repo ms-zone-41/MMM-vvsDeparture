@@ -11,10 +11,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { JSDOM } = require("jsdom");
-const moment = require("moment");
 const translations = require("../translations/de.json");
 
-// Load the module like MagicMirror does, with document and moment as globals.
+// Load the module like MagicMirror does, with document as a global.
 // It runs in its own context, where arrays created in this file are not
 // `instanceof Array`, so array values for config.number/direction are created
 // inside the context with vm.runInContext().
@@ -26,8 +25,7 @@ const context = vm.createContext({
 			definition = value;
 		}
 	},
-	document,
-	moment
+	document
 });
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../MMM-vvsDeparture.js"), "utf8"), context);
 
@@ -64,8 +62,9 @@ function delayCells(wrapper) {
 	return Array.from(wrapper.querySelectorAll("tr"), (row) => row.children[1]);
 }
 
+// The local time as HH:mm
 function time(date) {
-	return moment(date).format("HH:mm");
+	return new Date(date).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
 }
 
 test("shows the time, delay, line and direction of each departure", () => {
@@ -223,4 +222,17 @@ test("leaves the delay empty for a realtime departure without a valid estimate",
 	]));
 	assert.deepEqual(cells.map((cell) => cell.textContent), ["", "", ""]);
 	assert.deepEqual(cells.map((cell) => cell.className), ["", "", ""]);
+});
+
+test("shows the time with two digits for the hour", () => {
+	const wrapper = renderDepartures([createDeparture({ departureTimePlanned: "2026-10-03T05:07:00Z" })]);
+	assert.equal(rows(wrapper)[0][0], "07:07");
+});
+
+test("shows the planned departure time, not the estimated one", () => {
+	const wrapper = renderDepartures([
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T20:05:00Z" }),
+		createDeparture({ departureTimePlanned: "2026-10-03T07:05:00Z" })
+	]);
+	assert.deepEqual(rows(wrapper).map((row) => row[0]), [time("2026-10-02T19:54:00Z"), time("2026-10-03T07:05:00Z")]);
 });

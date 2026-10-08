@@ -22,7 +22,6 @@
     "test": "node --test"
   },
   "devDependencies": {
-    "jsdom": "^30.1.1",
-    "moment": "^2.31.0"
+    "jsdom": "^30.1.1"
   }
 }

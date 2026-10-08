@@ -29,11 +29,6 @@ Module.register("MMM-vvsDeparture", {
 		return ["MMM-vvsDeparture.css"];
 	},
 
-	// Define required scripts.
-	getScripts: function () {
-		return ["moment.js"];
-	},
-
 	// Load translations files
 	getTranslations: function() {
 		return {
@@ -97,14 +92,10 @@ Module.register("MMM-vvsDeparture", {
 			// Row
 			var trWrapper = document.createElement("tr");
 
-			// Clock
+			// Clock, with the planned departure
 			var clockWrapper = document.createElement("td");
 			clockWrapper.className = "time";
-
-			var date = new Date(currentValue.departureTimePlanned);
-			clockWrapper.innerHTML = moment(date.getHours() + ":" + date.getMinutes(), "HH:mm")
-				.subtract(currentValue.delay, "m")
-				.format("HH:mm");
+			clockWrapper.innerHTML = self.formatTime(currentValue.departureTimePlanned);
 			trWrapper.appendChild(clockWrapper);
 
 			// Delay. A cancelled departure is marked as such. Otherwise the cell
@@ -175,6 +166,12 @@ Module.register("MMM-vvsDeparture", {
 		return headerWrappper;
 	},
 
+
+	// Returns the local time of a timestamp as HH:mm
+	formatTime: function (timestamp) {
+		var date = new Date(timestamp);
+		return String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0");
+	},
 
 	// Returns the delay in whole minutes, or null if there is no valid estimate.
 	// Like the delay that VVS reports itself, the fraction of a minute is cut
