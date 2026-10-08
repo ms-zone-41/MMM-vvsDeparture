@@ -43,6 +43,7 @@ Module.register("MMM-vvsDeparture", {
 		Log.log("Starting module: " + self.name + "as" + self.identifier);
 
 		self.departure = [];
+		self.station_name = self.config.station_name;
 		self.sendSocketNotification("GET_DEPARTURES",
 			{
 				"config": self.config,
@@ -68,7 +69,11 @@ Module.register("MMM-vvsDeparture", {
 
 		var wrapper = document.createElement("div");
 
-		wrapper.appendChild(self.getHeaderDom());
+		// Unless it is configured, the station name is only known after the
+		// first update
+		if (self.station_name) {
+			wrapper.appendChild(self.getHeaderDom());
+		}
 
 		var tableWrapper = document.createElement("table");
 		tableWrapper.className = "departure";

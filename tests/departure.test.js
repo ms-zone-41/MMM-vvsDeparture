@@ -25,7 +25,8 @@ const context = vm.createContext({
 			definition = value;
 		}
 	},
-	document
+	document,
+	Log: { log() {} }
 });
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../MMM-vvsDeparture.js"), "utf8"), context);
 
@@ -41,15 +42,22 @@ function createDeparture(overrides = {}) {
 	};
 }
 
-function renderDepartures(departures, config = {}) {
-	const module = Object.assign(Object.create(definition), {
+function createModule(config = {}) {
+	return Object.assign(Object.create(definition), {
+		identifier: "module_0_MMM-vvsDeparture",
 		config: { ...definition.defaults, ...config },
-		departure: departures,
-		station_name: "Ditzingen",
 		translate(key) {
 			return translations[key] || key;
-		}
+		},
+		sendSocketNotification() {},
+		updateDom() {}
 	});
+}
+
+function renderDepartures(departures, config = {}) {
+	const module = createModule(config);
+	module.departure = departures;
+	module.station_name = "Ditzingen";
 	return module.getDom();
 }
 
@@ -235,4 +243,21 @@ test("shows the planned departure time, not the estimated one", () => {
 		createDeparture({ departureTimePlanned: "2026-10-03T07:05:00Z" })
 	]);
 	assert.deepEqual(rows(wrapper).map((row) => row[0]), [time("2026-10-02T19:54:00Z"), time("2026-10-03T07:05:00Z")]);
+});
+
+test("shows the configured station name before the first update", () => {
+	const module = createModule({ station_name: "Ditzingen" });
+	module.start();
+	assert.equal(module.getDom().querySelector("header").textContent, "Abfahrten von Ditzingen");
+});
+
+test("shows the station name from VVS once the first departures arrive", () => {
+	const module = createModule();
+	module.start();
+	assert.equal(module.getDom().querySelector("header"), null);
+	module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, {
+		locations: [{ disassembledName: "Ditzingen" }],
+		stopEvents: []
+	});
+	assert.equal(module.getDom().querySelector("header").textContent, "Abfahrten von Ditzingen");
 });
