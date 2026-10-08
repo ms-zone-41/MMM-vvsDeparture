@@ -107,25 +107,27 @@ Module.register("MMM-vvsDeparture", {
 				.format("HH:mm");
 			trWrapper.appendChild(clockWrapper);
 
-			// Delay, only for departures with realtime data. Without them, the
-			// cell stays empty.
+			// Delay. A cancelled departure is marked as such. Otherwise the cell
+			// shows the delay if the departure has realtime data with a valid
+			// estimate, and stays empty if not.
 			var delayWrapper = document.createElement("td");
-			if("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true){
+			if (self.isCancelled(currentValue)) {
+				delayWrapper.className = self.config.colorDelay ? "delay color" : "delay";
+				delayWrapper.innerHTML = self.translate("CANCELED");
+			} else if("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true){
 				var delay = this.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated);
-				if (delay.getMinutes() != 0) {
-					delayWrapper.className = "delay";
-					if (self.config.colorDelay) {
-						delayWrapper.className += " color";
+				if (!isNaN(delay.getMinutes())) {
+					if (delay.getMinutes() != 0) {
+						delayWrapper.className = "delay";
+						if (self.config.colorDelay) {
+							delayWrapper.className += " color";
+						}
+					} else {
+						delayWrapper.className = "nodelay";
+						if (self.config.colorNoDelay) {
+							delayWrapper.className += " color";
+						}
 					}
-				} else {
-					delayWrapper.className = "nodelay";
-					if (self.config.colorNoDelay) {
-						delayWrapper.className += " color";
-					}
-				}
-				if(isNaN(delay.getMinutes())){
-					delayWrapper.innerHTML = self.translate("CANCELED");
-				} else {
 					delayWrapper.innerHTML = "+" +delay.getMinutes();
 				}
 			}
@@ -186,6 +188,16 @@ Module.register("MMM-vvsDeparture", {
 		timeEstimated = new Date(departureTimeEstimated);
 		var timeDiff = new Date(timeEstimated.getTime() - timePlanned.getTime());
 		return timeDiff
+	},
+
+	// VVS reports a cancelled departure with isCancelled, or with TRIP_CANCELLED
+	// or DEPARTURE_CANCELLED in realtimeStatus. Such departures usually have no
+	// realtime flag and no estimate.
+	isCancelled : function(departure) {
+		var status = departure.realtimeStatus || [];
+		return departure.isCancelled === true
+			|| status.indexOf("TRIP_CANCELLED") >= 0
+			|| status.indexOf("DEPARTURE_CANCELLED") >= 0;
 	},
 
 	showNumber : function(number) {

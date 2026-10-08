@@ -137,3 +137,38 @@ test("ignores estimates of departures that are not realtime controlled", () => {
 	]));
 	assert.deepEqual(cells.map((cell) => cell.textContent), ["", ""]);
 });
+
+test("marks departures that VVS reports as cancelled", () => {
+	const cells = delayCells(renderDepartures([
+		// This is how VVS reports cancelled trips (no realtime flag, no estimate):
+		// a Stadtbahn trip, and a regional train whose realtimeStatus does not
+		// mention the cancellation (observed: [] and ["EXTRA_STOPS"])
+		createDeparture({ isCancelled: true, realtimeStatus: ["TRIP_CANCELLED"] }),
+		createDeparture({ isCancelled: true, realtimeStatus: ["EXTRA_STOPS"] }),
+		createDeparture({ isRealtimeControlled: true, isCancelled: true, departureTimeEstimated: "2026-10-02T19:54:00Z" }),
+		createDeparture({ isRealtimeControlled: true, realtimeStatus: ["MONITORED", "TRIP_CANCELLED"] }),
+		createDeparture({ isRealtimeControlled: true, realtimeStatus: ["MONITORED", "DEPARTURE_CANCELLED"] }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "2026-10-02T19:54:00Z", realtimeStatus: ["MONITORED"] })
+	]));
+	assert.deepEqual(cells.map((cell) => cell.textContent), [
+		translations.CANCELED, translations.CANCELED, translations.CANCELED, translations.CANCELED, translations.CANCELED, "+0"
+	]);
+	assert.equal(cells[0].className, "delay color");
+});
+
+test("colours cancelled departures only if colorDelay is set", () => {
+	const [cell] = delayCells(renderDepartures([
+		createDeparture({ isCancelled: true, realtimeStatus: ["TRIP_CANCELLED"] })
+	], { colorDelay: false }));
+	assert.equal(cell.textContent, translations.CANCELED);
+	assert.equal(cell.className, "delay");
+});
+
+test("leaves the delay empty for a realtime departure without a valid estimate", () => {
+	const cells = delayCells(renderDepartures([
+		createDeparture({ isRealtimeControlled: true }),
+		createDeparture({ isRealtimeControlled: true, departureTimeEstimated: "invalid" })
+	]));
+	assert.deepEqual(cells.map((cell) => cell.textContent), ["", ""]);
+	assert.deepEqual(cells.map((cell) => cell.className), ["", ""]);
+});
