@@ -58,7 +58,7 @@ Module.register("MMM-vvsDeparture", {
 			if (added >= this.config.maximumEntries) {
 				break;
 			}
-			if (!this.showNumber(departure.transportation.number) || !this.showDirection(departure.transportation.destination.name)) {
+			if (!this.matches(departure.transportation.number, this.config.number) || !this.matches(departure.transportation.destination.name, this.config.direction)) {
 				continue;
 			}
 			const row = document.createElement("tr");
@@ -134,25 +134,17 @@ Module.register("MMM-vvsDeparture", {
 		return departure.isCancelled === true || status.includes("TRIP_CANCELLED") || status.includes("DEPARTURE_CANCELLED");
 	},
 
-	showNumber(number) {
-		return this.isValue(number, this.config.number);
-	},
-
-	showDirection(direction) {
-		return this.isValue(direction, this.config.direction);
-	},
-
-	isValue(input, value) {
-		if (!value || !input) {
+	// Whether a line or destination passes the number or direction option: a
+	// value, a list of values or a function. Values compare as text, so that
+	// number: 622 finds the bus "622".
+	matches(value, filter) {
+		if (!filter || !value) {
 			return true;
-		} else if (value instanceof Array) {
-			return value.includes(input);
-		} else if (typeof value === "string" || value instanceof String) {
-			return value === input;
-		} else if (typeof value === "function" || value instanceof Function) {
-			return value(input);
 		}
-		return false;
+		if (typeof filter === "function") {
+			return filter(value);
+		}
+		return [filter].flat().map(String).includes(String(value));
 	}
 
 });

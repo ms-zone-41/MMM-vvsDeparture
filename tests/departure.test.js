@@ -49,6 +49,10 @@ function render(stopEvents, config) {
 	return module.shown;
 }
 
+function lines(departures, config) {
+	return rows(render(departures, config)).map((row) => row[2]);
+}
+
 // The cells of the table, row by row: time, status, line and destination
 function cells(wrapper) {
 	return Array.from(wrapper.querySelectorAll("tr"), (row) => Array.from(row.children));
@@ -131,4 +135,14 @@ test("colors the status unless colorDelay or colorNoDelay is false", () => {
 test("shows lines and destinations as text, not as HTML", () => {
 	const wrapper = render([departure({ transportation: { number: "<b>S6</b>", destination: { name: "Weil der Stadt & <i>Calw</i>" } } })]);
 	assert.deepEqual(rows(wrapper)[0].slice(2), ["<b>S6</b>", "Weil der Stadt & <i>Calw</i>"]);
+});
+
+test("only shows the configured lines and directions", () => {
+	const departures = [["S6", "Schwabstraße"], ["S60", "Böblingen"], ["622", "Ditzingen Bf"]].map(([number, name]) => departure({ transportation: { number, destination: { name } } }));
+	assert.deepEqual(lines(departures, { number: "S6" }), ["S6"]);
+	assert.deepEqual(lines(departures, { number: ["S60", "622"] }), ["S60", "622"]);
+	// Lines given as numbers
+	assert.deepEqual(lines(departures, { number: 622 }), ["622"]);
+	assert.deepEqual(lines(departures, { number: [622, "S6"] }), ["S6", "622"]);
+	assert.deepEqual(lines(departures, { direction: (name) => name !== "Böblingen" }), ["S6", "622"]);
 });
