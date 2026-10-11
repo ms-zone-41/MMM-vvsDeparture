@@ -12,7 +12,7 @@ Module.register("MMM-vvsDeparture", {
 		station_id: "de:08111:6112",
 		station_name: "",
 		maximumEntries: 6,
-		reloadInterval: 1 * 60 * 1000, // every minute
+		reloadInterval: 60 * 1000,
 		colorDelay: true,
 		colorNoDelay: true,
 		number: undefined,
@@ -20,183 +20,117 @@ Module.register("MMM-vvsDeparture", {
 		offset: undefined
 	},
 
-	requiresVersion: "2.1.0", // Required version of MagicMirror
+	requiresVersion: "2.1.0",
 
-	// Define required scripts.
-	getStyles: function () {
+	getStyles() {
 		return ["MMM-vvsDeparture.css"];
 	},
 
-	// Define required scripts.
-	getScripts: function () {
+	getScripts() {
 		return ["moment.js"];
 	},
 
-	// Load translations files
-	getTranslations: function () {
+	getTranslations() {
 		return {
 			en: "translations/en.json",
 			de: "translations/de.json"
 		};
 	},
 
-	// Overrides start function.
-	start: function () {
-		var self = this;
-		Log.log("Starting module: " + self.name + "as" + self.identifier);
-
-		self.departure = [];
-		self.sendSocketNotification("GET_DEPARTURES",
-			{
-				config: self.config,
-				identifier: this.identifier
-			});
+	start() {
+		Log.info(`Starting module: ${this.name}`);
+		this.departure = [];
+		this.sendSocketNotification("GET_DEPARTURES", { identifier: this.identifier, config: this.config });
 	},
 
-	// socketNotificationReceived from helper
-	socketNotificationReceived: function (notification, payload) {
-		var self = this;
-		if (notification === this.identifier + "_NEW_DEPARTURES") {
-			self.departure = payload.stopEvents;
-			self.station_name = self.config.station_name ? self.config.station_name : payload.locations[0].disassembledName;
-			self.updateDom();
+	socketNotificationReceived(notification, payload) {
+		if (notification === `${this.identifier}_NEW_DEPARTURES`) {
+			this.departure = payload.stopEvents;
+			this.station_name = this.config.station_name || payload.locations[0].disassembledName;
+			this.updateDom();
 		}
 	},
 
-	// Override dom generator.
-	getDom: function () {
-		var self = this;
-
-		var wrapper = document.createElement("div");
-
-		wrapper.appendChild(self.getHeaderDom());
-
-		var tableWrapper = document.createElement("table");
-		tableWrapper.className = "departure";
-
-		var added = 0;
-		for (var i in self.departure) {
-			// If the maximum number of entries is reached
-			// stop adding and attach table
-			if (added >= self.config.maximumEntries) {
-				wrapper.appendChild(tableWrapper);
-				return wrapper;
+	getDom() {
+		const wrapper = document.createElement("div");
+		wrapper.appendChild(this.getHeaderDom());
+		const table = document.createElement("table");
+		table.className = "departure";
+		let added = 0;
+		for (const departure of this.departure ?? []) {
+			if (added >= this.config.maximumEntries) {
+				break;
 			}
-
-			var currentValue = self.departure[i];
-
-			// Skip if the configuration should hide this
-			if (!self.showNumber(currentValue.transportation.number) || !self.showDirection(currentValue.transportation.destination.name)) {
+			if (!this.showNumber(departure.transportation.number) || !this.showDirection(departure.transportation.destination.name)) {
 				continue;
 			}
+			const row = document.createElement("tr");
+			row.className = "small dimmed";
 
-			// Row
-			var trWrapper = document.createElement("tr");
-
-			// Clock
-			var clockWrapper = document.createElement("td");
-			clockWrapper.className = "time";
-
-			var date = new Date(currentValue.departureTimePlanned);
-			clockWrapper.innerHTML = moment(date.getHours() + ":" + date.getMinutes(), "HH:mm")
-				.subtract(currentValue.delay, "m")
+			const time = document.createElement("td");
+			time.className = "time";
+			const date = new Date(departure.departureTimePlanned);
+			time.innerHTML = moment(`${date.getHours()}:${date.getMinutes()}`, "HH:mm")
+				.subtract(departure.delay, "m")
 				.format("HH:mm");
-			trWrapper.appendChild(clockWrapper);
 
-			// Delay
-			var delayWrapper = document.createElement("td");
-			if ("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true) {
-				var delay = this.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated);
+			const status = document.createElement("td");
+			if ("isRealtimeControlled" in departure && departure.isRealtimeControlled == true) {
+				var delay = this.calculateDelay(departure.departureTimePlanned, departure.departureTimeEstimated);
 			}
 			if (delay.getMinutes() != 0) {
-				delayWrapper.className = "delay";
-				if (self.config.colorDelay) {
-					delayWrapper.className += " color";
-				}
+				status.className = this.config.colorDelay ? "delay color" : "delay";
 			} else {
-				delayWrapper.className = "nodelay";
-				if (self.config.colorNoDelay) {
-					delayWrapper.className += " color";
-				}
+				status.className = this.config.colorNoDelay ? "nodelay color" : "nodelay";
 			}
-			if (isNaN(delay.getMinutes())) {
-				delayWrapper.innerHTML = self.translate("CANCELED");
-			} else {
-				delayWrapper.innerHTML = "+" + delay.getMinutes();
-			}
-			trWrapper.appendChild(delayWrapper);
+			status.innerHTML = isNaN(delay.getMinutes()) ? this.translate("CANCELED") : `+${delay.getMinutes()}`;
 
-			// Lane
-			var laneWrapper = document.createElement("td");
-			laneWrapper.className = "number";
-			laneWrapper.innerHTML = currentValue.transportation.number;
-			trWrapper.appendChild(laneWrapper);
+			const line = document.createElement("td");
+			line.className = "number";
+			line.innerHTML = departure.transportation.number;
 
-			// Direction
-			var directionWrapper = document.createElement("td");
-			directionWrapper.className = "direction";
-			directionWrapper.innerHTML = currentValue.transportation.destination.name;
-			trWrapper.appendChild(directionWrapper);
+			const destination = document.createElement("td");
+			destination.className = "direction";
+			destination.innerHTML = departure.transportation.destination.name;
 
-			trWrapper.className = "small dimmed";
-			tableWrapper.appendChild(trWrapper);
+			row.append(time, status, line, destination);
+			table.append(row);
 			added++;
 		}
-
-		wrapper.appendChild(tableWrapper);
+		wrapper.append(table);
 		return wrapper;
 	},
 
-	stringTemplateParser: function (expression, valueObj) {
-		const templateMatcher = /{{\s?([^{}\s]*)\s?}}/g;
-		let text = expression.replace(templateMatcher, (substring, value) => {
-			value = valueObj[value];
-			return value;
-		});
-		return text;
+	stringTemplateParser(expression, values) {
+		return expression.replace(/{{\s?([^{}\s]*)\s?}}/g, (match, name) => values[name]);
 	},
 
-	getHeaderDom: function () {
-		var self = this;
-
-		var headerWrappper = document.createElement("header");
-		if (self.config.offset && self.config.offset >= 0) {
-			headerWrappper.innerHTML = self.stringTemplateParser(
-				self.translate("DIRECTIONS_FROM_WITH_OFFSET"),
-				{
-					STATION: self.station_name,
-					OFFSET: self.config.offset
-				});
-		} else {
-			headerWrappper.innerHTML = self.stringTemplateParser(
-				self.translate("DIRECTIONS_FROM"),
-				{ STATION: self.station_name });
-		}
-		return headerWrappper;
+	getHeaderDom() {
+		const header = document.createElement("header");
+		const variables = { STATION: this.station_name, OFFSET: this.config.offset };
+		header.innerHTML = this.config.offset && this.config.offset >= 0
+			? this.stringTemplateParser(this.translate("DIRECTIONS_FROM_WITH_OFFSET"), variables)
+			: this.stringTemplateParser(this.translate("DIRECTIONS_FROM"), variables);
+		return header;
 	},
 
 	calculateDelay(departureTimePlanned, departureTimeEstimated) {
-		var timePlanned = new Date(departureTimePlanned);
-		var timeEstimated = new Date(departureTimeEstimated);
-		var timeDiff = new Date(timeEstimated.getTime() - timePlanned.getTime());
-		return timeDiff;
+		return new Date(new Date(departureTimeEstimated).getTime() - new Date(departureTimePlanned).getTime());
 	},
 
-	showNumber: function (number) {
-		var self = this;
-		return self.isValue(number, self.config.number);
+	showNumber(number) {
+		return this.isValue(number, this.config.number);
 	},
 
-	showDirection: function (direction) {
-		var self = this;
-		return self.isValue(direction, self.config.direction);
+	showDirection(direction) {
+		return this.isValue(direction, this.config.direction);
 	},
 
-	isValue: function (input, value) {
+	isValue(input, value) {
 		if (!value || !input) {
 			return true;
 		} else if (value instanceof Array) {
-			return value.indexOf(input) >= 0;
+			return value.includes(input);
 		} else if (typeof value === "string" || value instanceof String) {
 			return value === input;
 		} else if (typeof value === "function" || value instanceof Function) {
