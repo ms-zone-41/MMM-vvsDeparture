@@ -1,130 +1,120 @@
 # MMM-vvsDeparture
-A MagicMirror2 Module to display information about public transport in Stuttgart, Germany.
 
-The `MMM-vvsDeparture` module is a module designed to display the departures times as stations along the Stuttgart public transportation system.
- It is configurable based on the stations to get destination times for, destinations to exclude and other options.
+A [MagicMirror²](https://magicmirror.builders) module that shows the next departures from a stop of the [VVS](https://www.vvs.de), the public transport network of the Stuttgart region, with realtime delays and cancellations.
 
-It also will show any delays, based on the real time information provided by VVS.
+![Departures from Hauptbahnhof (A.-Klett-Platz) in Stuttgart, with a delay, a cancelled departure and a coupled train](example1.png)
 
-Example:
+## Features
 
-![Full](example1.png)
-
+- The next departures with their planned time, line and destination, straight from VVS, without an API key
+- Delays and early departures in minutes, e.g. `+3` or `-1`, a clock for departures on time, and a ban sign and a struck-through time for cancelled ones. Without realtime data, the column stays empty.
+- Coupled trains in one row, e.g. `S6/S60`, with all destinations of a train that splits later on
+- Filters for lines and destinations, and an offset for the time you need to get to the stop
+- English and German
 
 ## Installation
-Run these commands at the root of your magic mirror install.
+
+The module requires MagicMirror² 2.25.0 or newer. There is nothing to install with npm. Clone it into the `modules` directory of MagicMirror²:
 
 ```shell
-cd modules
-git clone https://github.com/fhinder/MMM-vvsDeparture
+cd ~/MagicMirror/modules
+git clone https://github.com/ms-zone-41/MMM-vvsDeparture
 ```
 
-## Using the module
-To use this module, add the following configuration block to the modules array in the `config/config.js` file:
+Add it to your configuration, see below, and restart MagicMirror².
+
+## Update
+
+```shell
+cd ~/MagicMirror/modules/MMM-vvsDeparture
+git pull
+```
+
+Then restart MagicMirror². If you have the module from [fhinder/MMM-vvsDeparture](https://github.com/fhinder/MMM-vvsDeparture), delete the directory `~/MagicMirror/modules/MMM-vvsDeparture` instead and install the module again, see [Installation](#installation). Your configuration keeps working.
+
+## Configuration
+
+Add the module to the `modules` array in `config/config.js`, with the ID of your stop:
+
 ```js
-var config = {
-    modules: [
-        {
-            module: 'MMM-vvsDeparture',
-            position: "top_right",
-            config: {
-                station_id: '<YOUR_STATION_ID_HERE>',
-                // See below for more configurable options
-            }
-        }
-    ]
-}
+	{
+		module: "MMM-vvsDeparture",
+		position: "top_right",
+		config: {
+			station_id: "de:08118:7000" // Ditzingen
+		}
+	},
 ```
 
-Note that a `position` setting is not required.
+### Finding the ID of your stop
 
-## Configuration options
-The following properties can be configured:
+Open this address in a browser, with the name of your stop in place of `Ditzingen%20Bahnhof`:
 
-<table width="100%">
-	<thead>
-		<tr>
-			<th>Option</th>
-			<th width="100%">Description</th>
-		</tr>
-	<thead>
-	<tbody>
-		<tr>
-			<td><code>station_id</code></td>
-			<td>A value which represents the station id of the station. The id is combined of the area prefix <code>de:08111</code> and the unique station id e.g <code>6112</code> which result to <code>de:08111:2201</code>. Here is a full list of all station with 
-				corespnding ids within the VVS public transport network, to find your station (<a href="https://www.opendata-oepnv.de/ht/de/organisation/verkehrsverbuende/vvs/startseite">https://www.opendata-oepnv.de/ht/de/organisation/verkehrsverbuende/vvs/startseite</a>).   
-				<br><br><b>Possible values:</b> <code>integer</code>
-				<br><b>Default value:</b> <code>de:08111:6112</code>
-			</td>
-		</tr>
-		<tr>
-			<td><code>station_name</code></td>
-			<td>The displayed name for your station.
-				<br><br><b>Possible values:</b> <code>string</code>
-				<br><b>Default value:</b> <code>undefined</code>
-			</td>
-		</tr>
-		<tr>
-			<td><code>maximumEntries</code></td>
-      		<td>Number of departure entries which will be shown.
-				<br><br><b>Possible values:</b> <code>integer</code>
-				<br><b>Default value:</b> <code>6</code>
-			</td>
-		</tr>
-		<tr>
-			<td>
-			    <code>reloadInterval</code>
-			</td>
-     		 <td>The refresh rate departure entries will be updated in milliseconds. 
-      			<br><br><b>Possible values:</b> <code>integer</code>
-				<br><b>Default value:</b> <code>1 * 60 * 1000</code> e.q. one minute
-			</td>
-		</tr>
-		<tr>
-			<td>
-			    <code>colorDelay</code>
-			</td>
-     		 <td>Define if the delay value should be colorized.
-      			<br><br><b>Possible values:</b> <code>boolean</code>
-				<br><b>Default value:</b> <code>true</code>
-			</td>
-		</tr>
-		<tr>
-			<td>
-			    <code>colorNoDelay</code>
-			</td>
-     		 <td>Define if the no delay value should be colorized.
-      			<br><br><b>Possible values:</b> <code>boolean</code>
-				<br><b>Default value:</b> <code>true</code>
-			</td>
-		</tr>
-		<tr>
-			<td>
-			    <code>number</code>
-			</td>
-     		 <td>Define the lane number which should be displayed. With this you can hide numbers you don't want to see.
-      			<br><br><b>Possible values:</b> <code>String</code> / <code>Array</code> / <code>Function</code> 
-				<br><b>Default value:</b> <code>undefined</code>
-			</td>
-		</tr>
-		<tr>
-			<td>
-			    <code>direction</code>
-			</td>
-     		 <td>Define the lane direction which should be displayed. With this you can hide numbers you don't wont to see.
-      			<br><br><b>Possible values:</b> <code>String</code> / <code>Array</code> / <code>Function</code> 
-				<br><b>Default value:</b> <code>undefined</code>
-			</td>
-		</tr>
-		<tr>
-			<td>
-			    <code>offset</code>
-			</td>
-     		 <td>Define the offset in minutes. Show connections only starting in the offset minutes.
-      			<br><br><b>Possible values:</b> <code>integer</code>
-				<br><b>Default value:</b> <code>undefined</code>
-			</td>
-		</tr>
-	</tbody>
-</table>
+<https://www3.vvs.de/mngvvs/XML_STOPFINDER_REQUEST?outputFormat=rapidJSON&type_sf=any&anyObjFilter_sf=2&name_sf=Ditzingen%20Bahnhof>
 
+VVS answers with the stops that match the name. Copy the `id` of your stop, e.g. `de:08118:7000` for Ditzingen, Bahnhof.
+
+### Options
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `station_id` | The ID of the stop, not its name. | `"de:08111:6112"`: Hauptbahnhof (A.-Klett-Platz) in Stuttgart |
+| `station_name` | The name of the stop in the header. | The name from VVS |
+| `maximumEntries` | The maximum number of departures to show. A coupled train counts once. | `6` |
+| `reloadInterval` | How often to load the departures, in milliseconds, at least `30000`. | `60000` (one minute) |
+| `colorDelay` | Show delays, early departures and the ban sign in red. | `true` |
+| `colorNoDelay` | Show the clock of departures on time in green. | `true` |
+| `number` | Only show these lines: one line, e.g. `"S6"` or `622`, a list, e.g. `["S6", "S60"]`, or a function that returns `true` for the lines to show. | All lines |
+| `direction` | Only show departures to these destinations: one destination, e.g. `"Schwabstraße"`, a list, or a function, e.g. `(destination) => destination !== "Weil der Stadt"`. | All destinations |
+| `offset` | Only show departures in at least this many minutes, e.g. the time you need to get to the stop. | None |
+
+`number` and `direction` compare each line and destination as the module spells it, e.g. `"Schwabstraße"`, not `"Schwabstrasse"`, and `"S6"`, not `"S6/S60"`. Functions do not work with MagicMirror² 2.35.
+
+The module loads the next 100 departures of the stop and then filters them. At a busy stop they cover only about half an hour, so the filters can leave fewer departures than `maximumEntries`.
+
+The header names the stop. The `header` option of MagicMirror² replaces it, see the example, and `header: ""` hides it. For several stops, add the module once for each.
+
+### Example
+
+The departures from Ditzingen to Schwabstraße that you can still catch if you need five minutes to get to the stop, under a header of your own:
+
+```js
+	{
+		module: "MMM-vvsDeparture",
+		position: "top_left",
+		header: "To Stuttgart",
+		config: {
+			station_id: "de:08118:7000", // Ditzingen
+			direction: "Schwabstraße",
+			offset: 5
+		}
+	},
+```
+
+## Messages
+
+Instead of the departures, the module can show a message:
+
+- **No stop with the ID “…”**: `station_id` is not the ID of a VVS stop, e.g. a name. See [Finding the ID of your stop](#finding-the-id-of-your-stop).
+- **No departures**: none of the next 100 departures matches `number` and `direction`, or VVS lists none.
+- **Could not load the departures from VVS**: the request to VVS failed. Below the message, the module shows why, e.g. `getaddrinfo EAI_AGAIN www3.vvs.de` if the mirror is offline, or `HTTP 503` if VVS has a problem. The module tries again at the next update.
+
+## Development
+
+The tests use [node:test](https://nodejs.org/api/test.html) and the development dependencies of the module. Run them and [ESLint](https://eslint.org) in the module directory:
+
+```shell
+npm install
+node --run test
+node --run lint
+```
+
+GitHub runs both for every push and pull request.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+MIT, see [LICENSE](LICENSE). [Niklas Kappler](https://github.com/niklaskappler/MMM-vvsDeparture) wrote the module. [Fabian Hinder](https://github.com/fhinder/MMM-vvsDeparture) maintained a fork of it, which this one continues.
