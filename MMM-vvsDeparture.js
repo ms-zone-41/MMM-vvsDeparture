@@ -1,5 +1,3 @@
-/* global Module */
-
 /* Magic Mirror
  * Module: MMM-vvsDeparture
  *
@@ -62,8 +60,6 @@ Module.register("MMM-vvsDeparture", {
 			self.departure = payload.stopEvents;
 			self.station_name = self.config.station_name ? self.config.station_name : payload.locations[0].disassembledName;
 			self.updateDom();
-		} else if (notification === this.identifier + "_ERROR") {
-
 		}
 	},
 
@@ -153,7 +149,7 @@ Module.register("MMM-vvsDeparture", {
 
 	stringTemplateParser: function (expression, valueObj) {
 		const templateMatcher = /{{\s?([^{}\s]*)\s?}}/g;
-		let text = expression.replace(templateMatcher, (substring, value, index) => {
+		let text = expression.replace(templateMatcher, (substring, value) => {
 			value = valueObj[value];
 			return value;
 		});
@@ -181,8 +177,8 @@ Module.register("MMM-vvsDeparture", {
 
 
 	calculateDelay(departureTimePlanned, departureTimeEstimated){
-		timePlanned = new Date(departureTimePlanned);
-		timeEstimated = new Date(departureTimeEstimated);
+		var timePlanned = new Date(departureTimePlanned);
+		var timeEstimated = new Date(departureTimeEstimated);
 		var timeDiff = new Date(timeEstimated.getTime() - timePlanned.getTime());
 		return timeDiff
 	},
