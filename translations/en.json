@@ -1,5 +1,5 @@
 {
-	"DIRECTIONS_FROM": "Departures from {{STATION}}",
-	"DIRECTIONS_FROM_WITH_OFFSET": "Departures from {{STATION}} in {{OFFSET}} min.",
+	"DIRECTIONS_FROM": "Departures from {STATION}",
+	"DIRECTIONS_FROM_WITH_OFFSET": "Departures from {STATION} in at least {OFFSET} min",
 	"CANCELED": "canc."
 }

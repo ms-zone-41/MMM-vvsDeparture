@@ -20,11 +20,12 @@ new Function("Module", "Log", "document", fs.readFileSync(path.join(__dirname, "
 );
 
 // A started module instance
-function createModule(config = {}) {
+function createModule(config = {}, header = undefined) {
 	const module = Object.assign(Object.create(definition), {
 		identifier: "module_0_MMM-vvsDeparture",
 		config: { ...definition.defaults, ...config },
-		translate: (key) => translations[key] ?? key,
+		data: { header },
+		translate: (key, variables = {}) => (translations[key] ?? key).replace(/{(\w+)}/g, (placeholder, name) => variables[name] ?? placeholder),
 		sendSocketNotification() {},
 		// MagicMirror² shows a new DOM when the module asks for it
 		updateDom() {
@@ -145,4 +146,31 @@ test("only shows the configured lines and directions", () => {
 	assert.deepEqual(lines(departures, { number: 622 }), ["622"]);
 	assert.deepEqual(lines(departures, { number: [622, "S6"] }), ["S6", "622"]);
 	assert.deepEqual(lines(departures, { direction: (name) => name !== "Böblingen" }), ["S6", "622"]);
+});
+
+test("names the stop in the header", () => {
+	const module = createModule();
+	assert.equal(module.getHeader(), "");
+	receive(module, []);
+	assert.equal(module.getHeader(), "Abfahrten von Ditzingen");
+	// The ID of a town gives its main stop, but the location has only a name
+	const town = createModule();
+	receive(town, [], [{ id: "5007000", type: "suburb", name: "Ditzingen" }]);
+	assert.equal(town.getHeader(), "Abfahrten von Ditzingen");
+	// A configured name, also before the first answer
+	const named = createModule({ station_name: "Zuhause", offset: 10 });
+	assert.equal(named.getHeader(), "Abfahrten von Zuhause frühestens in 10 min");
+	receive(named, []);
+	assert.equal(named.getHeader(), "Abfahrten von Zuhause frühestens in 10 min");
+	assert.equal(createModule({ station_name: "Zuhause", offset: 0 }).getHeader(), "Abfahrten von Zuhause");
+});
+
+test("shows a configured header instead, and none if it is empty", () => {
+	for (const header of ["Zur Arbeit", ""]) {
+		const module = createModule({}, header);
+		receive(module, []);
+		assert.equal(module.getHeader(), header);
+		// Not a second header in the content
+		assert.equal(module.shown.querySelector("header"), null);
+	}
 });

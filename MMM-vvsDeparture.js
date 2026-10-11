@@ -37,20 +37,20 @@ Module.register("MMM-vvsDeparture", {
 	start() {
 		Log.info(`Starting module: ${this.name}`);
 		this.departure = [];
+		this.stopName = null;
 		this.sendSocketNotification("GET_DEPARTURES", { identifier: this.identifier, config: this.config });
 	},
 
 	socketNotificationReceived(notification, payload) {
 		if (notification === `${this.identifier}_NEW_DEPARTURES`) {
 			this.departure = payload.stopEvents;
-			this.station_name = this.config.station_name || payload.locations[0].disassembledName;
+			this.stopName = payload.locations[0].disassembledName ?? payload.locations[0].name;
 			this.updateDom();
 		}
 	},
 
 	getDom() {
 		const wrapper = document.createElement("div");
-		wrapper.appendChild(this.getHeaderDom());
 		const table = document.createElement("table");
 		table.className = "departure";
 		let added = 0;
@@ -98,17 +98,19 @@ Module.register("MMM-vvsDeparture", {
 		return wrapper;
 	},
 
-	stringTemplateParser(expression, values) {
-		return expression.replace(/{{\s?([^{}\s]*)\s?}}/g, (match, name) => values[name]);
-	},
-
-	getHeaderDom() {
-		const header = document.createElement("header");
-		const variables = { STATION: this.station_name, OFFSET: this.config.offset };
-		header.innerHTML = this.config.offset && this.config.offset >= 0
-			? this.stringTemplateParser(this.translate("DIRECTIONS_FROM_WITH_OFFSET"), variables)
-			: this.stringTemplateParser(this.translate("DIRECTIONS_FROM"), variables);
-		return header;
+	// The header names the stop, unless the configuration sets a header; an
+	// empty one hides it
+	getHeader() {
+		if (typeof this.data.header === "string") {
+			return this.data.header;
+		}
+		const stop = this.config.station_name || this.stopName;
+		if (!stop) {
+			return "";
+		}
+		return this.config.offset > 0
+			? this.translate("DIRECTIONS_FROM_WITH_OFFSET", { STATION: stop, OFFSET: this.config.offset })
+			: this.translate("DIRECTIONS_FROM", { STATION: stop });
 	},
 
 	// The local time of a timestamp as HH:mm
