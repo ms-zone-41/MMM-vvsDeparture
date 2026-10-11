@@ -127,3 +127,8 @@ test("colors the status unless colorDelay or colorNoDelay is false", () => {
 	assert.deepEqual(classes({ colorDelay: false }), ["delay", "nodelay color", "delay", ""]);
 	assert.deepEqual(classes({ colorNoDelay: false }), ["delay color", "nodelay", "delay color", ""]);
 });
+
+test("shows lines and destinations as text, not as HTML", () => {
+	const wrapper = render([departure({ transportation: { number: "<b>S6</b>", destination: { name: "Weil der Stadt & <i>Calw</i>" } } })]);
+	assert.deepEqual(rows(wrapper)[0].slice(2), ["<b>S6</b>", "Weil der Stadt & <i>Calw</i>"]);
+});

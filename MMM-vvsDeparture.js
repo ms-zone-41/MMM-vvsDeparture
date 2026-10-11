@@ -84,11 +84,11 @@ Module.register("MMM-vvsDeparture", {
 
 			const line = document.createElement("td");
 			line.className = "number";
-			line.innerHTML = departure.transportation.number;
+			line.textContent = departure.transportation.number;
 
 			const destination = document.createElement("td");
 			destination.className = "direction";
-			destination.innerHTML = departure.transportation.destination.name;
+			destination.textContent = departure.transportation.destination.name;
 
 			row.append(time, status, line, destination);
 			table.append(row);
