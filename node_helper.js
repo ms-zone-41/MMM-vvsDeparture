@@ -41,14 +41,10 @@ module.exports = NodeHelper.create({
 
 	async fetchDepartures(identifier, { station_id: stationId, offset }) {
 		const params = new URLSearchParams({ limit: 40, mode: "direct", name_dm: stationId, outputFormat: "rapidJSON", type_dm: "any", useRealtime: 1 });
-		if (offset != undefined) {
-			const date = new Date();
-			date.setMinutes(date.getMinutes() + offset);
-			params.set("itdDateYear", date.getFullYear());
-			params.set("itdDateMonth", date.getMonth() + 1);
-			params.set("itdDateDay", date.getDate());
-			params.set("itdTimeHour", date.getHours());
-			params.set("itdTimeMinute", date.getMinutes());
+		if (offset > 0) {
+			// Minutes from now by the clock of VVS, whatever the time zone of
+			// the server
+			params.set("timeOffset", offset);
 		}
 		try {
 			// Give up a request that VVS does not answer, before the next one

@@ -68,6 +68,14 @@ test("fetches the departures from VVS for the module instance that asks for them
 	assert.deepEqual(notifications, [{ notification: `${IDENTIFIER}_NEW_DEPARTURES`, payload: ANSWER }]);
 });
 
+test("asks for the departures offset minutes from now", () => {
+	const { helper, requests } = createHelper();
+	for (const offset of [10, "10", 0, -5]) {
+		getDepartures(helper, IDENTIFIER, { offset });
+	}
+	assert.deepEqual(requests.map((request) => request.url), [`${URL}&timeOffset=10`, `${URL}&timeOffset=10`, URL, URL]);
+});
+
 test("fetches the departures again after each update interval, at most every 30 seconds", () => {
 	const { helper, timers, requests } = createHelper();
 	getDepartures(helper, IDENTIFIER, { reloadInterval: 120000 });
