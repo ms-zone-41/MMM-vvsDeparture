@@ -4,12 +4,12 @@
  * By Fabian Hinder
  * forked from nilaskappler
  * MIT Licensed.
- * 
+ *
  */
 Module.register("MMM-vvsDeparture", {
 
 	defaults: {
-		station_id: 'de:08111:6112',
+		station_id: "de:08111:6112",
 		station_name: "",
 		maximumEntries: 6,
 		reloadInterval: 1 * 60 * 1000, // every minute
@@ -33,7 +33,7 @@ Module.register("MMM-vvsDeparture", {
 	},
 
 	// Load translations files
-	getTranslations: function() {
+	getTranslations: function () {
 		return {
 			en: "translations/en.json",
 			de: "translations/de.json"
@@ -48,8 +48,8 @@ Module.register("MMM-vvsDeparture", {
 		self.departure = [];
 		self.sendSocketNotification("GET_DEPARTURES",
 			{
-				"config": self.config,
-				"identifier": this.identifier,
+				config: self.config,
+				identifier: this.identifier
 			});
 	},
 
@@ -86,7 +86,7 @@ Module.register("MMM-vvsDeparture", {
 			var currentValue = self.departure[i];
 
 			// Skip if the configuration should hide this
-			if(!self.showNumber(currentValue.transportation.number) || !self.showDirection(currentValue.transportation.destination.name)) {
+			if (!self.showNumber(currentValue.transportation.number) || !self.showDirection(currentValue.transportation.destination.name)) {
 				continue;
 			}
 
@@ -105,7 +105,7 @@ Module.register("MMM-vvsDeparture", {
 
 			// Delay
 			var delayWrapper = document.createElement("td");
-			if("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true){
+			if ("isRealtimeControlled" in currentValue && currentValue.isRealtimeControlled == true) {
 				var delay = this.calculateDelay(currentValue.departureTimePlanned, currentValue.departureTimeEstimated);
 			}
 			if (delay.getMinutes() != 0) {
@@ -119,10 +119,10 @@ Module.register("MMM-vvsDeparture", {
 					delayWrapper.className += " color";
 				}
 			}
-			if(isNaN(delay.getMinutes())){
+			if (isNaN(delay.getMinutes())) {
 				delayWrapper.innerHTML = self.translate("CANCELED");
 			} else {
-				delayWrapper.innerHTML = "+" +delay.getMinutes();
+				delayWrapper.innerHTML = "+" + delay.getMinutes();
 			}
 			trWrapper.appendChild(delayWrapper);
 
@@ -153,54 +153,53 @@ Module.register("MMM-vvsDeparture", {
 			value = valueObj[value];
 			return value;
 		});
-		return text
+		return text;
 	},
 
 	getHeaderDom: function () {
 		var self = this;
 
 		var headerWrappper = document.createElement("header");
-		if(self.config.offset && self.config.offset >= 0){
+		if (self.config.offset && self.config.offset >= 0) {
 			headerWrappper.innerHTML = self.stringTemplateParser(
 				self.translate("DIRECTIONS_FROM_WITH_OFFSET"),
 				{
 					STATION: self.station_name,
-					OFFSET: self.config.offset,
+					OFFSET: self.config.offset
 				});
-		}else {
+		} else {
 			headerWrappper.innerHTML = self.stringTemplateParser(
 				self.translate("DIRECTIONS_FROM"),
-				{STATION: self.station_name});
+				{ STATION: self.station_name });
 		}
 		return headerWrappper;
 	},
 
-
-	calculateDelay(departureTimePlanned, departureTimeEstimated){
+	calculateDelay(departureTimePlanned, departureTimeEstimated) {
 		var timePlanned = new Date(departureTimePlanned);
 		var timeEstimated = new Date(departureTimeEstimated);
 		var timeDiff = new Date(timeEstimated.getTime() - timePlanned.getTime());
-		return timeDiff
+		return timeDiff;
 	},
 
-	showNumber : function(number) {
+	showNumber: function (number) {
 		var self = this;
 		return self.isValue(number, self.config.number);
 	},
 
-	showDirection : function(direction) {
+	showDirection: function (direction) {
 		var self = this;
 		return self.isValue(direction, self.config.direction);
 	},
 
-	isValue : function(input, value) {
-		if(!value || !input) {
+	isValue: function (input, value) {
+		if (!value || !input) {
 			return true;
-		} else if(value instanceof Array) {
+		} else if (value instanceof Array) {
 			return value.indexOf(input) >= 0;
 		} else if (typeof value === "string" || value instanceof String) {
 			return value === input;
-		} else if(typeof value === "function" || value instanceof Function) {
+		} else if (typeof value === "function" || value instanceof Function) {
 			return value(input);
 		}
 		return false;

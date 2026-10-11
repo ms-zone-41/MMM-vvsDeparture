@@ -2,7 +2,7 @@
     padding-left: 10px;
 }
 
-.departure .delay.color { 
+.departure .delay.color {
     color: red;
 }
 
@@ -16,8 +16,8 @@
 
 .departure .number {
     padding-left: 10px;
-
 }
+
 .departure .direction {
     padding-left: 10px;
     text-align: left;
