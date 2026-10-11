@@ -68,16 +68,19 @@ Module.register("MMM-vvsDeparture", {
 			time.className = "time";
 			time.textContent = this.formatTime(departure.departureTimePlanned);
 
+			// The cancellation, the delay, or nothing without realtime data
 			const status = document.createElement("td");
-			if ("isRealtimeControlled" in departure && departure.isRealtimeControlled == true) {
-				var delay = this.calculateDelay(departure.departureTimePlanned, departure.departureTimeEstimated);
-			}
-			if (delay.getMinutes() != 0) {
+			const delay = this.getDelay(departure);
+			if (this.isCancelled(departure)) {
 				status.className = this.config.colorDelay ? "delay color" : "delay";
-			} else {
+				status.textContent = this.translate("CANCELED");
+			} else if (delay === 0) {
 				status.className = this.config.colorNoDelay ? "nodelay color" : "nodelay";
+				status.textContent = "+0";
+			} else if (delay !== null) {
+				status.className = this.config.colorDelay ? "delay color" : "delay";
+				status.textContent = delay > 0 ? `+${delay}` : `${delay}`;
 			}
-			status.innerHTML = isNaN(delay.getMinutes()) ? this.translate("CANCELED") : `+${delay.getMinutes()}`;
 
 			const line = document.createElement("td");
 			line.className = "number";
@@ -114,8 +117,21 @@ Module.register("MMM-vvsDeparture", {
 		return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 	},
 
-	calculateDelay(departureTimePlanned, departureTimeEstimated) {
-		return new Date(new Date(departureTimeEstimated).getTime() - new Date(departureTimePlanned).getTime());
+	// The delay in whole minutes, or null without a valid realtime estimate.
+	// Like VVS, the module cuts off the seconds, so a departure 36 seconds late
+	// is on time.
+	getDelay(departure) {
+		if (departure.isRealtimeControlled !== true) {
+			return null;
+		}
+		const delay = Math.trunc((Date.parse(departure.departureTimeEstimated) - Date.parse(departure.departureTimePlanned)) / 60000);
+		return Number.isFinite(delay) ? delay : null;
+	},
+
+	// VVS reports a cancelled departure with isCancelled or in realtimeStatus
+	isCancelled(departure) {
+		const status = departure.realtimeStatus ?? [];
+		return departure.isCancelled === true || status.includes("TRIP_CANCELLED") || status.includes("DEPARTURE_CANCELLED");
 	},
 
 	showNumber(number) {

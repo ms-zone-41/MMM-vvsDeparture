@@ -85,3 +85,45 @@ test("shows the planned time, the status, the line and the destination of each d
 	// The classes that the CSS of MagicMirror² and of the module select
 	assert.equal(wrapper.querySelectorAll("table.departure > tr.small.dimmed > td.time + td + td.number + td.direction").length, 2);
 });
+
+test("shows the delay in whole minutes and nothing without a valid realtime estimate", () => {
+	const cases = [
+		[{}, ""],
+		[estimate("19:56:00"), "+2"],
+		// After a delay: an estimate without the realtime flag shows nothing
+		[{ departureTimeEstimated: "2026-10-02T19:56:00Z" }, ""],
+		[estimate("19:52:00"), "-2"],
+		[estimate("21:04:00"), "+70"],
+		// Like VVS, cut off the seconds
+		[estimate("19:54:36"), "+0"],
+		[estimate("19:58:30"), "+4"],
+		[estimate("19:53:42"), "+0"],
+		[estimate("19:52:24"), "-1"],
+		[{ isRealtimeControlled: true }, ""],
+		[{ isRealtimeControlled: true, departureTimeEstimated: "invalid" }, ""]
+	];
+	const statuses = rows(render(cases.map(([realtime]) => departure(realtime)), { maximumEntries: cases.length })).map((row) => row[1]);
+	assert.deepEqual(statuses, cases.map(([, status]) => status));
+});
+
+test("marks departures that VVS reports as cancelled", () => {
+	const wrapper = render([
+		// How VVS reports cancelled trips, e.g. a regional train whose
+		// realtimeStatus does not mention the cancellation
+		departure({ isCancelled: true, realtimeStatus: ["TRIP_CANCELLED"] }),
+		departure({ isCancelled: true, realtimeStatus: ["EXTRA_STOPS"] }),
+		departure({ ...estimate("19:54:00"), isCancelled: true }),
+		departure({ isRealtimeControlled: true, realtimeStatus: ["MONITORED", "TRIP_CANCELLED"] }),
+		departure({ isRealtimeControlled: true, realtimeStatus: ["MONITORED", "DEPARTURE_CANCELLED"] }),
+		departure({ ...estimate("19:54:00"), realtimeStatus: ["MONITORED"] })
+	]);
+	assert.deepEqual(rows(wrapper).map((row) => row[1]), ["gestr.", "gestr.", "gestr.", "gestr.", "gestr.", "+0"]);
+});
+
+test("colors the status unless colorDelay or colorNoDelay is false", () => {
+	const departures = [departure(estimate("19:56:00")), departure(estimate("19:54:00")), departure({ isCancelled: true }), departure()];
+	const classes = (config) => cells(render(departures, config)).map((row) => row[1].className);
+	assert.deepEqual(classes(), ["delay color", "nodelay color", "delay color", ""]);
+	assert.deepEqual(classes({ colorDelay: false }), ["delay", "nodelay color", "delay", ""]);
+	assert.deepEqual(classes({ colorNoDelay: false }), ["delay color", "nodelay", "delay color", ""]);
+});
