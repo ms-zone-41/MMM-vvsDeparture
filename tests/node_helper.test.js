@@ -41,6 +41,7 @@ function createHelper(respond = respondWith(ANSWER)) {
 		// Like socket.io, send the payload as JSON
 		sendSocketNotification: (notification, payload) => notifications.push({ notification, payload: JSON.parse(JSON.stringify(payload)) })
 	});
+	helper.start();
 	return { helper, timers, requests, notifications, logs };
 }
 
@@ -67,13 +68,30 @@ test("fetches the departures from VVS for the module instance that asks for them
 	assert.deepEqual(notifications, [{ notification: `${IDENTIFIER}_NEW_DEPARTURES`, payload: ANSWER }]);
 });
 
-test("fetches the departures again after each update interval", () => {
+test("fetches the departures again after each update interval, at most every 30 seconds", () => {
 	const { helper, timers, requests } = createHelper();
 	getDepartures(helper, IDENTIFIER, { reloadInterval: 120000 });
 	const [timer] = timers;
 	assert.equal(timer.delay, 120000);
 	timer.callback();
 	assert.equal(requests.length, 2);
+	// E.g. reloadInterval in seconds by mistake, or not a number
+	for (const reloadInterval of [60, "60s"]) {
+		getDepartures(helper, IDENTIFIER, { reloadInterval });
+		assert.equal([...timers][0].delay, 30000);
+	}
+});
+
+test("keeps one update timer per module instance and stops them with MagicMirror²", () => {
+	const { helper, timers, requests } = createHelper();
+	getDepartures(helper, "module_0_MMM-vvsDeparture");
+	getDepartures(helper, "module_1_MMM-vvsDeparture");
+	// Each browser that loads the page asks again, and gets the departures
+	getDepartures(helper, "module_0_MMM-vvsDeparture");
+	assert.equal(timers.size, 2);
+	assert.equal(requests.length, 3);
+	helper.stop();
+	assert.equal(timers.size, 0);
 });
 
 test("logs why the departures could not be loaded and tells the module instance", async () => {

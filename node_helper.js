@@ -15,12 +15,27 @@ module.exports = NodeHelper.create({
 	// fetch is built into Node.js 18, which MagicMirror² requires since 2.25.0
 	requiresVersion: "2.25.0",
 
+	start() {
+		// The update timer of each module instance, by its identifier
+		this.timers = {};
+	},
+
+	stop() {
+		Object.values(this.timers).forEach(clearInterval);
+	},
+
+	// A module instance asks whenever a browser loads the mirror. Its timer is
+	// replaced, so that it fetches once per interval however many browsers
+	// show the mirror.
 	socketNotificationReceived(notification, payload) {
 		if (notification === "GET_DEPARTURES") {
 			const { identifier, config } = payload;
 			const update = () => this.fetchDepartures(identifier, config);
+			clearInterval(this.timers[identifier]);
 			update();
-			setInterval(update, config.reloadInterval);
+			// At most every 30 seconds, also if reloadInterval is in seconds or not
+			// a number
+			this.timers[identifier] = setInterval(update, Math.max(config.reloadInterval, 30 * 1000) || 30 * 1000);
 		}
 	},
 
