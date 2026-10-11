@@ -27,10 +27,6 @@ Module.register("MMM-vvsDeparture", {
 		return ["MMM-vvsDeparture.css"];
 	},
 
-	getScripts() {
-		return ["moment.js"];
-	},
-
 	getTranslations() {
 		return {
 			en: "translations/en.json",
@@ -70,10 +66,7 @@ Module.register("MMM-vvsDeparture", {
 
 			const time = document.createElement("td");
 			time.className = "time";
-			const date = new Date(departure.departureTimePlanned);
-			time.innerHTML = moment(`${date.getHours()}:${date.getMinutes()}`, "HH:mm")
-				.subtract(departure.delay, "m")
-				.format("HH:mm");
+			time.textContent = this.formatTime(departure.departureTimePlanned);
 
 			const status = document.createElement("td");
 			if ("isRealtimeControlled" in departure && departure.isRealtimeControlled == true) {
@@ -113,6 +106,12 @@ Module.register("MMM-vvsDeparture", {
 			? this.stringTemplateParser(this.translate("DIRECTIONS_FROM_WITH_OFFSET"), variables)
 			: this.stringTemplateParser(this.translate("DIRECTIONS_FROM"), variables);
 		return header;
+	},
+
+	// The local time of a timestamp as HH:mm
+	formatTime(timestamp) {
+		const date = new Date(timestamp);
+		return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 	},
 
 	calculateDelay(departureTimePlanned, departureTimeEstimated) {
