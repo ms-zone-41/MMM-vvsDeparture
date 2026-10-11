@@ -20,7 +20,8 @@ Module.register("MMM-vvsDeparture", {
 		offset: undefined
 	},
 
-	requiresVersion: "2.1.0",
+	// For fetch in the node helper
+	requiresVersion: "2.25.0",
 
 	getStyles() {
 		return ["MMM-vvsDeparture.css"];

@@ -27,7 +27,7 @@ export default defineConfig([
 		}
 	},
 	{
-		files: ["node_helper.js"],
+		files: ["node_helper.js", "tests/**/*.js"],
 		languageOptions: {
 			sourceType: "commonjs",
 			globals: globals.node
