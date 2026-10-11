@@ -36,31 +36,56 @@ Module.register("MMM-vvsDeparture", {
 
 	start() {
 		Log.info(`Starting module: ${this.name}`);
-		this.departure = [];
+		// The departures and the name of the stop from VVS, and why they are missing
+		this.departures = null;
 		this.stopName = null;
+		this.error = null;
+		this.reason = null;
 		this.sendSocketNotification("GET_DEPARTURES", { identifier: this.identifier, config: this.config });
 	},
 
 	socketNotificationReceived(notification, payload) {
 		if (notification === `${this.identifier}_NEW_DEPARTURES`) {
-			this.departure = payload.stopEvents;
-			this.stopName = payload.locations[0].disassembledName ?? payload.locations[0].name;
+			// VVS answers an ID with its location, an unknown ID with none, and a
+			// name with all the places that match it
+			if (payload.locations?.length === 1) {
+				this.departures = payload.stopEvents ?? [];
+				this.stopName = payload.locations[0].disassembledName ?? payload.locations[0].name;
+				this.error = null;
+			} else {
+				this.error = this.translate("STATION_NOT_FOUND", { STATION_ID: this.config.station_id });
+			}
+			this.reason = null;
+			this.updateDom();
+		} else if (notification === `${this.identifier}_ERROR`) {
+			this.error = this.translate("LOAD_ERROR");
+			this.reason = payload.reason;
 			this.updateDom();
 		}
 	},
 
 	getDom() {
 		const wrapper = document.createElement("div");
+		const departures = (this.departures ?? []).filter((departure) => this.matches(departure.transportation.number, this.config.number)
+			&& this.matches(departure.transportation.destination.name, this.config.direction)).slice(0, this.config.maximumEntries);
+		if (this.error || departures.length === 0) {
+			// LOADING is a translation of MagicMirror²
+			const message = document.createElement("div");
+			message.className = "small dimmed";
+			message.textContent = this.error ?? this.translate(this.departures ? "NO_DEPARTURES" : "LOADING");
+			wrapper.append(message);
+			if (this.reason) {
+				// Why the departures could not be loaded, e.g. HTTP 503
+				const reason = document.createElement("div");
+				reason.className = "xsmall dimmed";
+				reason.textContent = this.reason;
+				wrapper.append(reason);
+			}
+			return wrapper;
+		}
 		const table = document.createElement("table");
 		table.className = "departure";
-		let added = 0;
-		for (const departure of this.departure ?? []) {
-			if (added >= this.config.maximumEntries) {
-				break;
-			}
-			if (!this.matches(departure.transportation.number, this.config.number) || !this.matches(departure.transportation.destination.name, this.config.direction)) {
-				continue;
-			}
+		for (const departure of departures) {
 			const row = document.createElement("tr");
 			row.className = "small dimmed";
 
@@ -92,7 +117,6 @@ Module.register("MMM-vvsDeparture", {
 
 			row.append(time, status, line, destination);
 			table.append(row);
-			added++;
 		}
 		wrapper.append(table);
 		return wrapper;

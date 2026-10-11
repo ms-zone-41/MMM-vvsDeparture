@@ -19,14 +19,17 @@ new Function("Module", "Log", "document", fs.readFileSync(path.join(__dirname, "
 	new JSDOM().window.document
 );
 
-// A started module instance
+// A started module instance. sent holds the socket notifications it sends.
 function createModule(config = {}, header = undefined) {
 	const module = Object.assign(Object.create(definition), {
 		identifier: "module_0_MMM-vvsDeparture",
 		config: { ...definition.defaults, ...config },
 		data: { header },
+		sent: [],
 		translate: (key, variables = {}) => (translations[key] ?? key).replace(/{(\w+)}/g, (placeholder, name) => variables[name] ?? placeholder),
-		sendSocketNotification() {},
+		sendSocketNotification(notification, payload) {
+			this.sent.push({ notification, payload });
+		},
 		// MagicMirror² shows a new DOM when the module asks for it
 		updateDom() {
 			this.shown = this.getDom();
@@ -173,4 +176,63 @@ test("shows a configured header instead, and none if it is empty", () => {
 		// Not a second header in the content
 		assert.equal(module.shown.querySelector("header"), null);
 	}
+});
+
+test("asks for the departures and shows that they are loading", () => {
+	const module = createModule();
+	const [{ notification, payload }] = module.sent;
+	assert.equal(notification, "GET_DEPARTURES");
+	assert.equal(payload.identifier, module.identifier);
+	assert.equal(payload.config, module.config);
+	assert.equal(module.getDom().textContent, "LOADING");
+	// The departures and errors of another instance, e.g. for another stop
+	module.socketNotificationReceived("module_1_MMM-vvsDeparture_NEW_DEPARTURES", { locations: [DITZINGEN], stopEvents: [departure()] });
+	module.socketNotificationReceived("module_1_MMM-vvsDeparture_ERROR", { reason: "HTTP 503" });
+	assert.equal(module.getDom().textContent, "LOADING");
+	receive(module, [departure()]);
+	assert.equal(rows(module.shown).length, 1);
+});
+
+test("shows a message if there are no departures to show", () => {
+	const message = (stopEvents, config) => {
+		const wrapper = render(stopEvents, config);
+		return wrapper.querySelector("table") ? "table" : wrapper.querySelector("div.small.dimmed").textContent;
+	};
+	// VVS may also leave out stopEvents
+	assert.equal(message([]), "Keine Abfahrten");
+	assert.equal(message(undefined), "Keine Abfahrten");
+	assert.equal(message([departure()], { direction: "Schwabstrasse" }), "Keine Abfahrten");
+	assert.equal(message([departure()], { maximumEntries: 0 }), "Keine Abfahrten");
+});
+
+test("shows a message if station_id is not the ID of a stop", () => {
+	const answers = [
+		// The answer of VVS for an ID that it does not know
+		["de:08111:999999", { version: "10.6.21.17", systemMessages: [], locations: [] }],
+		// The answer for a name (shortened): the places that match it
+		["Ditzingen", { locations: [{ id: "suburbID:8118011:1:Ditzingen", type: "suburb", name: "Ditzingen" }, DITZINGEN] }]
+	];
+	for (const [stationId, answer] of answers) {
+		const module = createModule({ station_id: stationId });
+		module.socketNotificationReceived(`${module.identifier}_NEW_DEPARTURES`, answer);
+		assert.equal(module.shown.textContent, `Keine Haltestelle mit der ID „${stationId}“`);
+	}
+});
+
+test("shows why the departures could not be loaded, until the next update", () => {
+	const module = createModule();
+	receive(module, [departure()]);
+	module.socketNotificationReceived(`${module.identifier}_ERROR`, { reason: "HTTP 503" });
+	assert.deepEqual(Array.from(module.shown.children, (line) => line.textContent), ["Abfahrten konnten nicht vom VVS geladen werden", "HTTP 503"]);
+	receive(module, [departure()]);
+	assert.equal(rows(module.shown).length, 1);
+	// The reason goes with the error
+	module.socketNotificationReceived(`${module.identifier}_ERROR`, { reason: "HTTP 503" });
+	receive(module, []);
+	assert.equal(module.shown.textContent, "Keine Abfahrten");
+});
+
+test("has the same texts in English and German", () => {
+	const placeholders = (texts) => Object.fromEntries(Object.entries(texts).map(([key, text]) => [key, text.match(/{\w+}/g)?.sort()]));
+	assert.deepEqual(placeholders(require("../translations/en.json")), placeholders(translations));
 });

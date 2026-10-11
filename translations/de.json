@@ -1,5 +1,8 @@
 {
 	"DIRECTIONS_FROM": "Abfahrten von {STATION}",
 	"DIRECTIONS_FROM_WITH_OFFSET": "Abfahrten von {STATION} frühestens in {OFFSET} min",
-	"CANCELED": "gestr."
+	"CANCELED": "gestr.",
+	"STATION_NOT_FOUND": "Keine Haltestelle mit der ID „{STATION_ID}“",
+	"LOAD_ERROR": "Abfahrten konnten nicht vom VVS geladen werden",
+	"NO_DEPARTURES": "Keine Abfahrten"
 }
