@@ -11,6 +11,10 @@ const Log = require("logger");
 
 const DEPARTURE_MONITOR = "https://www3.vvs.de/mngvvs/XML_DM_REQUEST";
 
+// VVS counts the departures of all lines and directions, so the module needs
+// many more than it shows when the configuration filters them
+const LIMIT = 100;
+
 module.exports = NodeHelper.create({
 	// fetch is built into Node.js 18, which MagicMirror² requires since 2.25.0
 	requiresVersion: "2.25.0",
@@ -40,7 +44,7 @@ module.exports = NodeHelper.create({
 	},
 
 	async fetchDepartures(identifier, { station_id: stationId, offset }) {
-		const params = new URLSearchParams({ limit: 40, mode: "direct", name_dm: stationId, outputFormat: "rapidJSON", type_dm: "any", useRealtime: 1 });
+		const params = new URLSearchParams({ limit: LIMIT, mode: "direct", name_dm: stationId, outputFormat: "rapidJSON", type_dm: "any", useRealtime: 1 });
 		if (offset > 0) {
 			// Minutes from now by the clock of VVS, whatever the time zone of
 			// the server
@@ -52,7 +56,7 @@ module.exports = NodeHelper.create({
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
-			this.sendSocketNotification(`${identifier}_NEW_DEPARTURES`, await response.json());
+			this.sendSocketNotification(`${identifier}_NEW_DEPARTURES`, withoutIncompleteMinute(await response.json()));
 		} catch (error) {
 			// fetch gives the reason of a network error, e.g. a failed DNS lookup,
 			// as the cause, sometimes only as a code
@@ -62,3 +66,17 @@ module.exports = NodeHelper.create({
 		}
 	}
 });
+
+// VVS sorts the departures by their planned time and cuts them off at the
+// limit, even within a minute. If it sends as many as requested, the last
+// minute may lack some, e.g. one part of a coupled train: leave it out,
+// unless it is all there is.
+function withoutIncompleteMinute(data) {
+	const stopEvents = data.stopEvents ?? [];
+	if (stopEvents.length < LIMIT) {
+		return data;
+	}
+	const lastMinute = stopEvents.at(-1).departureTimePlanned;
+	const complete = stopEvents.filter((stopEvent) => stopEvent.departureTimePlanned !== lastMinute);
+	return complete.length > 0 ? { ...data, stopEvents: complete } : data;
+}

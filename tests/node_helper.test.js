@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const IDENTIFIER = "module_0_MMM-vvsDeparture";
-const URL = "https://www3.vvs.de/mngvvs/XML_DM_REQUEST?limit=40&mode=direct&name_dm=de%3A08118%3A7000&outputFormat=rapidJSON&type_dm=any&useRealtime=1";
+const URL = "https://www3.vvs.de/mngvvs/XML_DM_REQUEST?limit=100&mode=direct&name_dm=de%3A08118%3A7000&outputFormat=rapidJSON&type_dm=any&useRealtime=1";
 
 // The answer of VVS for a stop (shortened)
 const ANSWER = { locations: [{ id: "de:08118:7000", type: "stop", disassembledName: "Ditzingen" }], stopEvents: [] };
@@ -59,6 +59,14 @@ function settle() {
 	return new Promise((resolve) => setImmediate(resolve));
 }
 
+// count departures, perMinute of them a minute, sorted like VVS sorts them
+function createStopEvents(count, perMinute = 1) {
+	return Array.from({ length: count }, (_, index) => ({
+		id: index,
+		departureTimePlanned: new Date(Date.UTC(2026, 9, 9, 17, Math.floor(index / perMinute))).toISOString()
+	}));
+}
+
 test("fetches the departures from VVS for the module instance that asks for them", async () => {
 	const { helper, requests, notifications } = createHelper();
 	getDepartures(helper);
@@ -74,6 +82,31 @@ test("asks for the departures offset minutes from now", () => {
 		getDepartures(helper, IDENTIFIER, { offset });
 	}
 	assert.deepEqual(requests.map((request) => request.url), [`${URL}&timeOffset=10`, `${URL}&timeOffset=10`, URL, URL]);
+});
+
+test("leaves out the last minute if VVS sends as many departures as requested", async () => {
+	// VVS may have cut off a part of a coupled train
+	const stopEvents = createStopEvents(100, 2);
+	const { helper, notifications } = createHelper(respondWith({ ...ANSWER, stopEvents }));
+	getDepartures(helper);
+	await settle();
+	assert.deepEqual(notifications[0].payload, { ...ANSWER, stopEvents: stopEvents.slice(0, 98) });
+});
+
+test("passes on complete answers of VVS unchanged", async () => {
+	const answers = [
+		{ ...ANSWER, stopEvents: createStopEvents(99) },
+		// All departures in the same minute
+		{ ...ANSWER, stopEvents: createStopEvents(100, 100) },
+		// The answer for an ID that VVS does not know
+		{ version: "10.6.21.17", systemMessages: [], locations: [] }
+	];
+	for (const answer of answers) {
+		const { helper, notifications } = createHelper(respondWith(answer));
+		getDepartures(helper);
+		await settle();
+		assert.deepEqual(notifications[0].payload, answer);
+	}
 });
 
 test("fetches the departures again after each update interval, at most every 30 seconds", () => {
