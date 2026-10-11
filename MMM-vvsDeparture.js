@@ -24,7 +24,7 @@ Module.register("MMM-vvsDeparture", {
 	requiresVersion: "2.25.0",
 
 	getStyles() {
-		return ["MMM-vvsDeparture.css"];
+		return ["font-awesome.css", "MMM-vvsDeparture.css"];
 	},
 
 	getTranslations() {
@@ -109,22 +109,27 @@ Module.register("MMM-vvsDeparture", {
 	// A row: the planned time, the realtime status, the lines and the
 	// destinations of a departure, or of the parts of a coupled train
 	getRow(departures) {
+		const cancelled = this.isCancelled(departures[0]);
 		const row = document.createElement("tr");
 		row.className = "small dimmed";
 
 		const time = document.createElement("td");
-		time.className = "time";
+		time.className = cancelled ? "time cancelled" : "time";
 		time.textContent = this.formatTime(departures[0].departureTimePlanned);
 
-		// The cancellation, the delay, or nothing without realtime data
+		// A ban sign if the departure is cancelled, a clock if it is on time,
+		// the delay, or nothing without realtime data
 		const status = document.createElement("td");
 		const delay = this.getDelay(departures);
-		if (this.isCancelled(departures[0])) {
+		if (cancelled) {
 			status.className = this.config.colorDelay ? "delay color" : "delay";
-			status.textContent = this.translate("CANCELED");
+			status.append(this.getBanDom());
 		} else if (delay === 0) {
 			status.className = this.config.colorNoDelay ? "nodelay color" : "nodelay";
-			status.textContent = "+0";
+			const clock = document.createElement("span");
+			// fa-xs makes it as high as the digits, like the ban sign
+			clock.className = "fa-regular fa-clock fa-fw fa-xs";
+			status.append(clock);
 		} else if (delay !== null) {
 			status.className = this.config.colorDelay ? "delay color" : "delay";
 			status.textContent = delay > 0 ? `+${delay}` : `${delay}`;
@@ -140,6 +145,16 @@ Module.register("MMM-vvsDeparture", {
 
 		row.append(time, status, line, destination);
 		return row;
+	},
+
+	// Font Awesome Free has the ban sign only in the solid style, with thicker
+	// strokes than the regular clock, so the module draws it. Ring and slash are
+	// one path, so that they do not darken each other if the color is
+	// translucent. MMM-vvsDeparture.css gives it the size of the clock.
+	getBanDom() {
+		const wrapper = document.createElement("span");
+		wrapper.innerHTML = `<svg class="ban" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 24a232 232 0 1 1 0 464 232 232 0 1 1 0-464zM92 92 420 420" fill="none" stroke="currentColor" stroke-width="48"/></svg>`;
+		return wrapper.firstChild;
 	},
 
 	// The local time of a timestamp as HH:mm

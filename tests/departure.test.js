@@ -62,10 +62,13 @@ function cells(wrapper) {
 	return Array.from(wrapper.querySelectorAll("tr"), (row) => Array.from(row.children));
 }
 
-// The text of the cells
+// The content of the cells: their text, with the class of an icon in its place
 function rows(wrapper) {
-	return cells(wrapper).map((row) => row.map((cell) => cell.textContent));
+	return cells(wrapper).map((row) => row.map((cell) => Array.from(cell.childNodes, (node) => (node.nodeType === node.TEXT_NODE ? node.textContent : node.getAttribute("class"))).join("")));
 }
+
+const CLOCK = "fa-regular fa-clock fa-fw fa-xs";
+const BAN = "ban";
 
 // A departure at 21:54 as VVS lists it, without realtime data
 function departure(overrides = {}) {
@@ -87,11 +90,13 @@ test("shows the planned time, the status, the line and the destination of each d
 		departure(estimate("19:56:00"))
 	]);
 	assert.deepEqual(rows(wrapper), [
-		["07:07", "+0", "S62", "Weil der Stadt"],
+		["07:07", CLOCK, "S62", "Weil der Stadt"],
 		["21:54", "+2", "S6", "Schwabstraße"]
 	]);
 	// The classes that the CSS of MagicMirror² and of the module select
 	assert.equal(wrapper.querySelectorAll("table.departure > tr.small.dimmed > td.time + td + td.number + td.direction").length, 2);
+	// The clock is a Font Awesome icon, which MagicMirror² provides
+	assert.ok(createModule().getStyles().includes("font-awesome.css"));
 });
 
 test("shows the delay in whole minutes and nothing without a valid realtime estimate", () => {
@@ -103,9 +108,9 @@ test("shows the delay in whole minutes and nothing without a valid realtime esti
 		[estimate("19:52:00"), "-2"],
 		[estimate("21:04:00"), "+70"],
 		// Like VVS, cut off the seconds
-		[estimate("19:54:36"), "+0"],
+		[estimate("19:54:36"), CLOCK],
 		[estimate("19:58:30"), "+4"],
-		[estimate("19:53:42"), "+0"],
+		[estimate("19:53:42"), CLOCK],
 		[estimate("19:52:24"), "-1"],
 		[{ isRealtimeControlled: true }, ""],
 		[{ isRealtimeControlled: true, departureTimeEstimated: "invalid" }, ""]
@@ -125,7 +130,9 @@ test("marks departures that VVS reports as cancelled", () => {
 		departure({ isRealtimeControlled: true, realtimeStatus: ["MONITORED", "DEPARTURE_CANCELLED"] }),
 		departure({ ...estimate("19:54:00"), realtimeStatus: ["MONITORED"] })
 	]);
-	assert.deepEqual(rows(wrapper).map((row) => row[1]), ["gestr.", "gestr.", "gestr.", "gestr.", "gestr.", "+0"]);
+	assert.deepEqual(rows(wrapper).map((row) => row[1]), [BAN, BAN, BAN, BAN, BAN, CLOCK]);
+	// The time is struck through
+	assert.deepEqual(cells(wrapper).map((row) => row[0].className), ["time cancelled", "time cancelled", "time cancelled", "time cancelled", "time cancelled", "time"]);
 });
 
 test("colors the status unless colorDelay or colorNoDelay is false", () => {
@@ -374,7 +381,7 @@ test("shows a cancelled part of a coupled train on its own", () => {
 		train("S6", later),
 		train("S60", later)
 	]);
-	assert.deepEqual(rows(wrapper).map((row) => row.slice(1, 3)), [["gestr.", "S6"], ["+2", "S60"], ["gestr.", "S6/S60"]]);
+	assert.deepEqual(rows(wrapper).map((row) => row.slice(1, 3)), [[BAN, "S6"], ["+2", "S60"], [BAN, "S6/S60"]]);
 });
 
 test("filters lines before combining and counts a coupled train as one entry", () => {

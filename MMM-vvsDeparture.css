@@ -1,17 +1,27 @@
-.departure .delay {
+.departure .time.cancelled {
+    text-decoration: line-through;
+}
+
+.departure .delay,
+.departure .nodelay {
     padding-left: 10px;
+    text-align: center;
 }
 
 .departure .delay.color {
     color: red;
 }
 
-.departure .nodelay {
-    padding-left: 10px;
-}
-
 .departure .nodelay.color {
     color: greenyellow;
+}
+
+/* The size of the clock, a Font Awesome icon with fa-fw and fa-xs, so that it
+   scales with the font and is as high as the digits */
+.departure .ban {
+    width: 0.9375em;
+    height: 0.75em;
+    overflow: visible;
 }
 
 .departure .number {
