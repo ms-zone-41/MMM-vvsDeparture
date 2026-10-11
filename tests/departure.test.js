@@ -236,3 +236,150 @@ test("has the same texts in English and German", () => {
 	const placeholders = (texts) => Object.fromEntries(Object.entries(texts).map(([key, text]) => [key, text.match(/{\w+}/g)?.sort()]));
 	assert.deepEqual(placeholders(require("../translations/en.json")), placeholders(translations));
 });
+
+// Coupled trains, from real departures
+
+// The location of a departure: its platform, in its stop
+function platform(stop, area, number) {
+	return { id: `${stop}:${area}:${number}`, type: "platform", properties: { platform: number, platformName: `Gleis ${number}` }, parent: { id: stop, type: "stop" } };
+}
+
+// The location that VVS gives if a train leaves from a different part of the
+// station than planned, or VVS cannot assign the platform: the stop, with
+// what is known of the platform
+function stopLocation(id, platformName, number) {
+	return { id, type: "platform", properties: { platformName, platform: number }, parent: { id, type: "stop" } };
+}
+
+// A train from platform 3 at Ditzingen, e.g. one part of a coupled train
+function train(number, overrides = {}) {
+	return departure({
+		location: platform("de:08118:7000", 1, "3"),
+		...overrides,
+		transportation: {
+			number,
+			product: { class: 1, name: "S-Bahn" },
+			destination: { id: "5006052", name: "Schwabstraße" },
+			...overrides.transportation
+		}
+	});
+}
+
+const ZUG = { class: 0, name: "Zug" };
+const HBF = { id: "5006115", name: "Stuttgart Hauptbahnhof" };
+
+test("shows coupled trains in one row", () => {
+	const wrapper = render([train("S60"), train("S6"), train("S60", { departureTimePlanned: "2026-10-02T20:24:00Z" })]);
+	assert.deepEqual(rows(wrapper), [
+		["21:54", "", "S6/S60", "Schwabstraße"],
+		["22:24", "", "S60", "Schwabstraße"]
+	]);
+});
+
+test("shows the earliest realtime estimate of the parts of a coupled train", () => {
+	const later = { departureTimePlanned: "2026-10-02T20:24:00Z" };
+	const wrapper = render([
+		train("S6"),
+		train("S60", estimate("19:57:00")),
+		train("S6", { ...later, ...estimate("20:27:00") }),
+		train("S60", { ...later, ...estimate("20:26:00") })
+	]);
+	assert.deepEqual(rows(wrapper).map((row) => row[1]), ["+3", "+2"]);
+});
+
+test("shows a train that splits later on in one row with all its destinations", () => {
+	// S6 and S60 run coupled from Stuttgart to Renningen
+	const schwabstrasse = { id: "5006052", name: "Schwabstraße" };
+	const wrapper = render([
+		train("S60", { transportation: { origin: schwabstrasse, destination: { id: "5007100", name: "Böblingen" } } }),
+		train("S6", { transportation: { origin: schwabstrasse, destination: { id: "5001303", name: "Weil der Stadt" } } })
+	]);
+	assert.deepEqual(rows(wrapper).map((row) => row.slice(2)), [["S6/S60", "Weil der Stadt, Böblingen"]]);
+});
+
+test("only combines trains with the same time, platform and product class", () => {
+	assert.deepEqual(lines([
+		train("S6"),
+		train("S60", { departureTimePlanned: "2026-10-02T19:55:00Z" }),
+		train("S62", { location: platform("de:08118:7000", 1, "2") }),
+		train("RB63", { transportation: { product: { class: 13, name: "Regionalzug" } } })
+	]), ["S6", "S60", "S62", "RB63"]);
+});
+
+test("does not combine trains with different origins and destinations", () => {
+	assert.deepEqual(lines([
+		train("S1", { transportation: { origin: { id: "1", name: "Kirchheim (Teck)" }, destination: { id: "2", name: "Herrenberg" } } }),
+		train("S2", { transportation: { origin: { id: "3", name: "Schorndorf" }, destination: { id: "4", name: "Filderstadt" } } })
+	]), ["S1", "S2"]);
+});
+
+test("tells platforms apart when VVS gives the stop as their location", () => {
+	// MEX13 to Aalen and MEX17 to Pforzheim at Stuttgart Hbf
+	assert.deepEqual(lines([
+		train("MEX13", { location: stopLocation("de:08111:6115", "Gleis 13"), transportation: { product: ZUG, origin: HBF, destination: { id: "5033006", name: "Aalen Hauptbahnhof" } } }),
+		train("MEX17", { location: stopLocation("de:08111:6115", "Gleis 11"), transportation: { product: ZUG, origin: HBF, destination: { id: "5031013", name: "Pforzheim Hauptbahnhof" } } })
+	]), ["MEX13", "MEX17"]);
+});
+
+test("combines the parts of a coupled train when VVS gives the stop as their location", () => {
+	// VVS writes the name of a platform with or without "Gleis"
+	assert.deepEqual(lines([
+		train("S6", { location: stopLocation("de:08111:6157", "Gleis 1a") }),
+		train("S60", { location: stopLocation("de:08111:6157", "1a") })
+	]), ["S6/S60"]);
+});
+
+test("combines the parts of a coupled train when VVS gives the stop as the location of one part", () => {
+	// RE14 to Rottweil and to Hochdorf at Stuttgart Hbf, planned on different platforms
+	const wrapper = render([
+		train("RE14", { location: platform("de:08111:6115", 2, "3"), transportation: { product: ZUG, origin: HBF, destination: { id: "5030014", name: "Rottweil" } } }),
+		train("RE14", { location: stopLocation("de:08111:6115", "Gleis 3", "3"), transportation: { product: ZUG, origin: HBF, destination: { id: "5031001", name: "Hochdorf (bei Horb)" } } })
+	]);
+	assert.deepEqual(rows(wrapper).map((row) => row.slice(2)), [["RE14", "Hochdorf (bei Horb), Rottweil"]]);
+});
+
+test("tells the platform by its number when VVS gives the stop as the location", () => {
+	// RE90 and an extra trip at Backnang: the number of the platform is right,
+	// the name of RE90's is still the planned one
+	assert.deepEqual(lines([
+		train("RE90", { location: stopLocation("de:08119:7600", "Gleis 3", "4"), transportation: { product: ZUG, destination: HBF } }),
+		train("MEX19", { location: stopLocation("de:08119:7600", "4"), transportation: { product: ZUG, destination: HBF } })
+	]), ["MEX19/RE90"]);
+});
+
+test("does not combine trains from an unknown platform", () => {
+	assert.deepEqual(lines([
+		train("S6", { location: stopLocation("de:08111:6157") }),
+		train("S60", { location: stopLocation("de:08111:6157") })
+	]), ["S6", "S60"]);
+});
+
+test("does not combine Stadtbahn trains, trams, U-Bahn trains or buses that leave together", () => {
+	// U11 and U19 at Cannstatter Wasen on event days
+	const neckarPark = { id: "5006330", name: "NeckarPark (Stadion)" };
+	for (const productClass of [2, 3, 4]) {
+		const stadtbahn = (number, origin) => train(number, { transportation: { product: { class: productClass }, origin, destination: neckarPark } });
+		assert.deepEqual(lines([stadtbahn("U11", { id: "5006112" }), stadtbahn("U19", { id: "5002484" })]), ["U11", "U19"]);
+	}
+	// The loop lines 622 and 626 at Ditzingen Bf
+	const bus = (number) => train(number, { transportation: { product: { class: 5 }, destination: { id: "5007000", name: "Ditzingen Bf" } } });
+	assert.deepEqual(lines([bus("622"), bus("626")]), ["622", "626"]);
+});
+
+test("shows a cancelled part of a coupled train on its own", () => {
+	const later = { departureTimePlanned: "2026-10-02T20:24:00Z", isCancelled: true };
+	const wrapper = render([
+		train("S6", { isCancelled: true }),
+		train("S60", estimate("19:56:00")),
+		train("S6", later),
+		train("S60", later)
+	]);
+	assert.deepEqual(rows(wrapper).map((row) => row.slice(1, 3)), [["gestr.", "S6"], ["+2", "S60"], ["gestr.", "S6/S60"]]);
+});
+
+test("filters lines before combining and counts a coupled train as one entry", () => {
+	const later = { departureTimePlanned: "2026-10-02T20:24:00Z" };
+	const departures = [train("S6"), train("S60"), train("S6", later), train("S60", later)];
+	assert.deepEqual(lines(departures, { number: "S60" }), ["S60", "S60"]);
+	assert.deepEqual(lines(departures, { maximumEntries: 1 }), ["S6/S60"]);
+});
