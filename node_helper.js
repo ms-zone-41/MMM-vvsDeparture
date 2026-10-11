@@ -1,8 +1,7 @@
-/* Magic Mirror
- * Module: MMM-vvsDeparture
+/* MagicMirror²
+ * Node Helper: MMM-vvsDeparture
  *
- * By Fabian Hinder
- * forked from nilaskappler
+ * By Niklas Kappler
  * MIT Licensed.
  */
 
