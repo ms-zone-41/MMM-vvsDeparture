@@ -30,7 +30,7 @@ cd ~/MagicMirror/modules/MMM-vvsDeparture
 git pull
 ```
 
-Then restart MagicMirror². If you have the module from [fhinder/MMM-vvsDeparture](https://github.com/fhinder/MMM-vvsDeparture), delete the directory `~/MagicMirror/modules/MMM-vvsDeparture` instead and install the module again, see [Installation](#installation). Your configuration keeps working.
+Then restart MagicMirror². If you have the module from [fhinder/MMM-vvsDeparture](https://github.com/fhinder/MMM-vvsDeparture), delete the directory `~/MagicMirror/modules/MMM-vvsDeparture` instead and install the module again, see [Installation](#installation). Your configuration keeps working, but the realtime status is only red and green if you set `colorDelay` and `colorNoDelay` to `true`.
 
 ## Configuration
 
@@ -62,8 +62,8 @@ VVS answers with the stops that match the name. Copy the `id` of your stop, e.g.
 | `station_name` | The name of the stop in the header. | The name from VVS |
 | `maximumEntries` | The maximum number of departures to show. A coupled train counts once. | `6` |
 | `reloadInterval` | How often to load the departures, in milliseconds, at least `30000`. | `60000` (one minute) |
-| `colorDelay` | Show delays, early departures and the ban sign in red. | `true` |
-| `colorNoDelay` | Show the clock of departures on time in green. | `true` |
+| `colorDelay` | Show delays, early departures and the ban sign in red. | `false` |
+| `colorNoDelay` | Show the clock of departures on time in green. | `false` |
 | `number` | Only show these lines: one line, e.g. `"S6"` or `622`, a list, e.g. `["S6", "S60"]`, or a function that returns `true` for the lines to show. | All lines |
 | `direction` | Only show departures to these destinations: one destination, e.g. `"Schwabstraße"`, a list, or a function, e.g. `(destination) => destination !== "Weil der Stadt"`. | All destinations |
 | `offset` | Only show departures in at least this many minutes, e.g. the time you need to get to the stop. | None |

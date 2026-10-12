@@ -12,8 +12,8 @@ Module.register("MMM-vvsDeparture", {
 		station_name: "",
 		maximumEntries: 6,
 		reloadInterval: 60 * 1000,
-		colorDelay: true,
-		colorNoDelay: true,
+		colorDelay: false,
+		colorNoDelay: false,
 		number: undefined,
 		direction: undefined,
 		offset: undefined

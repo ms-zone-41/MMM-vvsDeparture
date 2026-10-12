@@ -135,12 +135,12 @@ test("marks departures that VVS reports as cancelled", () => {
 	assert.deepEqual(cells(wrapper).map((row) => row[0].className), ["time cancelled", "time cancelled", "time cancelled", "time cancelled", "time cancelled", "time"]);
 });
 
-test("colors the status unless colorDelay or colorNoDelay is false", () => {
+test("colors the status only if colorDelay or colorNoDelay is true", () => {
 	const departures = [departure(estimate("19:56:00")), departure(estimate("19:54:00")), departure({ isCancelled: true }), departure()];
 	const classes = (config) => cells(render(departures, config)).map((row) => row[1].className);
-	assert.deepEqual(classes(), ["delay color", "nodelay color", "delay color", ""]);
-	assert.deepEqual(classes({ colorDelay: false }), ["delay", "nodelay color", "delay", ""]);
-	assert.deepEqual(classes({ colorNoDelay: false }), ["delay color", "nodelay", "delay color", ""]);
+	assert.deepEqual(classes(), ["delay", "nodelay", "delay", ""]);
+	assert.deepEqual(classes({ colorDelay: true }), ["delay color", "nodelay", "delay color", ""]);
+	assert.deepEqual(classes({ colorNoDelay: true }), ["delay", "nodelay color", "delay", ""]);
 });
 
 test("shows lines and destinations as text, not as HTML", () => {
