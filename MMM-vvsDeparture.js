@@ -84,7 +84,7 @@ Module.register("MMM-vvsDeparture", {
 			return wrapper;
 		}
 		const table = document.createElement("table");
-		table.className = "departure";
+		table.className = "departure small";
 		table.append(...trains.map((train) => this.getRow(train)));
 		wrapper.append(table);
 		return wrapper;
@@ -106,14 +106,17 @@ Module.register("MMM-vvsDeparture", {
 	},
 
 	// A row: the planned time, the realtime status, the lines and the
-	// destinations of a departure, or of the parts of a coupled train
+	// destinations of a departure, or of the parts of a coupled train. The
+	// time and the status are bright, like the main values of the default
+	// modules of MagicMirror², and the lines and the destinations have the
+	// normal text color, like details. A cancelled departure has the normal
+	// text color as a whole, so that it is still easy to read.
 	getRow(departures) {
 		const cancelled = this.isCancelled(departures[0]);
 		const row = document.createElement("tr");
-		row.className = "small dimmed";
 
 		const time = document.createElement("td");
-		time.className = cancelled ? "time cancelled" : "time";
+		time.className = cancelled ? "time cancelled" : "time bright";
 		time.textContent = this.formatTime(departures[0].departureTimePlanned);
 
 		// A ban sign if the departure is cancelled, a clock if it is on time,
@@ -132,6 +135,9 @@ Module.register("MMM-vvsDeparture", {
 		} else if (delay !== null) {
 			status.className = this.config.colorDelay ? "delay color" : "delay";
 			status.textContent = delay > 0 ? `+${delay}` : `${delay}`;
+		}
+		if (!cancelled) {
+			status.classList.add("bright");
 		}
 
 		const line = document.createElement("td");

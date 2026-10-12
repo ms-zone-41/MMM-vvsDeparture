@@ -94,7 +94,13 @@ test("shows the planned time, the status, the line and the destination of each d
 		["21:54", "+2", "S6", "Schwabstraße"]
 	]);
 	// The classes that the CSS of MagicMirror² and of the module select
-	assert.equal(wrapper.querySelectorAll("table.departure > tr.small.dimmed > td.time + td + td.number + td.direction").length, 2);
+	assert.equal(wrapper.querySelectorAll("table.departure.small > tr > td.time + td + td.number + td.direction").length, 2);
+	// The time and the status bright, the line and the destination in the
+	// normal text color of the table
+	assert.deepEqual(cells(wrapper).map((row) => row.map((cell) => cell.classList.contains("bright"))), [
+		[true, true, false, false],
+		[true, true, false, false]
+	]);
 	// The clock is a Font Awesome icon, which MagicMirror² provides
 	assert.ok(createModule().getStyles().includes("font-awesome.css"));
 });
@@ -132,12 +138,18 @@ test("marks departures that VVS reports as cancelled", () => {
 	]);
 	assert.deepEqual(rows(wrapper).map((row) => row[1]), [BAN, BAN, BAN, BAN, BAN, CLOCK]);
 	// The time is struck through
-	assert.deepEqual(cells(wrapper).map((row) => row[0].className), ["time cancelled", "time cancelled", "time cancelled", "time cancelled", "time cancelled", "time"]);
+	assert.deepEqual(cells(wrapper).map((row) => row[0].className), ["time cancelled", "time cancelled", "time cancelled", "time cancelled", "time cancelled", "time bright"]);
+	// A cancelled departure has the normal text color as a whole, the others
+	// a bright time and status
+	assert.deepEqual(cells(wrapper).map((row) => row.filter((cell) => cell.classList.contains("bright")).length), [0, 0, 0, 0, 0, 2]);
+	// Nothing dimmed, so that a cancelled departure is still easy to read
+	assert.equal(wrapper.querySelectorAll(".dimmed, .normal").length, 0);
 });
 
 test("colors the status only if colorDelay or colorNoDelay is true", () => {
 	const departures = [departure(estimate("19:56:00")), departure(estimate("19:54:00")), departure({ isCancelled: true }), departure()];
-	const classes = (config) => cells(render(departures, config)).map((row) => row[1].className);
+	// The classes besides bright
+	const classes = (config) => cells(render(departures, config)).map((row) => Array.from(row[1].classList).filter((name) => name !== "bright").join(" "));
 	assert.deepEqual(classes(), ["delay", "nodelay", "delay", ""]);
 	assert.deepEqual(classes({ colorDelay: true }), ["delay color", "nodelay", "delay color", ""]);
 	assert.deepEqual(classes({ colorNoDelay: true }), ["delay", "nodelay color", "delay", ""]);

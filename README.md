@@ -7,7 +7,7 @@ A [MagicMirror²](https://magicmirror.builders) module that shows the next depar
 ## Features
 
 - The next departures with their planned time, line and destination, straight from VVS, without an API key
-- Delays and early departures in minutes, e.g. `+3` or `-1`, a clock for departures on time, and a ban sign and a struck-through time for cancelled ones. Without realtime data, the column stays empty.
+- Delays and early departures in minutes, e.g. `+3` or `-1`, a clock for departures on time, and a ban sign and a struck-through time for cancelled ones. The time and the status are bright, the line and the destination in the normal text color, and so is a cancelled departure as a whole. Without realtime data, the column stays empty.
 - Coupled trains in one row, e.g. `S6/S60`, with all destinations of a train that splits later on
 - Filters for lines and destinations, and an offset for the time you need to get to the stop
 - English and German
